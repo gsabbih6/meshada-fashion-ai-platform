@@ -110,3 +110,10 @@ springdoc:
 
 server:
   address: 0.0.0.0
+
+datasource:
+  url: jdbc:postgresql://localhost:5432/meshada_db
+  username: gsabbih
+  password: 
+
+als_path: ${ALS_PATH:/tmp/als_model}

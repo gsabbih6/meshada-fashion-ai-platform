@@ -130,3 +130,10 @@ meshada:
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+
+datasource:
+  url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:meshada_db}}
+  username: ${SPRING_DATASOURCE_USERNAME:${PGUSER:gsabbih}}
+  password: ${SPRING_DATASOURCE_PASSWORD:${PGPASSWORD:}}
+
+als_path: ${ALS_PATH:/tmp/als_model}
