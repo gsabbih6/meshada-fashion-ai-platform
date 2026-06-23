@@ -46,9 +46,9 @@ spring:
     name: meshada_api_entrypoint
 jwt:
   private:
-    key: classpath:rsa.private.key
+    key: ${JWT_PRIVATE_KEY_PATH:classpath:rsa.private.key}
   public:
-    key: classpath:rsa.public.key
+    key: ${JWT_PUBLIC_KEY_PATH:classpath:rsa.public.key}
 meshada:
   constants:
     kafka:

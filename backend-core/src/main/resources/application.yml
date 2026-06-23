@@ -51,9 +51,9 @@ spring:
 #    username: gsabbih5@gmail.com
 jwt:
   private:
-    key: classpath:rsa.private.key
+    key: ${JWT_PRIVATE_KEY_PATH:classpath:rsa.private.key}
   public:
-    key: classpath:rsa.public.key
+    key: ${JWT_PUBLIC_KEY_PATH:classpath:rsa.public.key}
 meshada:
   ugc:
     scriptPath: ${MESHADA_UGC_SCRIPTPATH:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/orchestrator.py}
