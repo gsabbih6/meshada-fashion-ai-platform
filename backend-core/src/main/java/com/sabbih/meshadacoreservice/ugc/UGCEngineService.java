@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.sabbih.meshadacoreservice.social.SocialPublisherService;
+
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -16,14 +18,16 @@ public class UGCEngineService {
 
     private final UGCVideoRepository ugcVideoRepository;
     private final ObjectMapper objectMapper;
+    private final SocialPublisherService socialPublisherService;
 
     @org.springframework.beans.factory.annotation.Value("${meshada.ugc.scriptPath:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/orchestrator.py}")
     private String scriptPath;
 
     @Autowired
-    public UGCEngineService(UGCVideoRepository ugcVideoRepository, ObjectMapper objectMapper) {
+    public UGCEngineService(UGCVideoRepository ugcVideoRepository, ObjectMapper objectMapper, SocialPublisherService socialPublisherService) {
         this.ugcVideoRepository = ugcVideoRepository;
         this.objectMapper = objectMapper;
+        this.socialPublisherService = socialPublisherService;
     }
 
     public void generateUGCForProduct(String productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
@@ -69,7 +73,8 @@ public class UGCEngineService {
                         video.setItemName(productName);
                         video.setCreatedAt(java.time.LocalDateTime.now());
                         
-                        ugcVideoRepository.save(video);
+                        UGCVideo savedVideo = ugcVideoRepository.save(video);
+                        socialPublisherService.publishVideoToSocial(savedVideo);
                     }
                 }
             } else {

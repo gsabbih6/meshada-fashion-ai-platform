@@ -18,6 +18,7 @@ public class SocialResponderService {
     private final SocialCommentRepository commentRepository;
     private final UGCVideoRepository videoRepository;
     private final CommentReplyEngine replyEngine;
+    private final SocialPlatformClient platformClient;
 
     @Value("${meshada.app.url:https://www.meshada.com}")
     private String appBaseUrl;
@@ -25,10 +26,12 @@ public class SocialResponderService {
     @Autowired
     public SocialResponderService(SocialCommentRepository commentRepository,
                                    UGCVideoRepository videoRepository,
-                                   CommentReplyEngine replyEngine) {
+                                   CommentReplyEngine replyEngine,
+                                   SocialPlatformClient platformClient) {
         this.commentRepository = commentRepository;
         this.videoRepository = videoRepository;
         this.replyEngine = replyEngine;
+        this.platformClient = platformClient;
     }
 
     /**
@@ -106,14 +109,30 @@ public class SocialResponderService {
 
     /**
      * Post reply back to the social platform.
-     * Currently logs the reply. When API keys for Instagram/TikTok/Twitter
-     * are configured, this will make the actual API call.
      */
     private void postReplyToPlatform(SocialComment comment) {
-        // TODO: Implement platform-specific API calls when credentials are available
-        // For now, log the reply that would be posted
-        log.info("[AUTO-REPLY] Platform: {} | To: @{} | Reply: {}",
-                comment.getPlatform(), comment.getUsername(), comment.getReplyText());
+        boolean success = false;
+        String platform = comment.getPlatform().toLowerCase();
+
+        switch (platform) {
+            case "instagram":
+                success = platformClient.replyToInstagramComment(comment.getCommentId(), comment.getReplyText());
+                break;
+            case "twitter":
+            case "x":
+                success = platformClient.replyToTwitterComment(comment.getCommentId(), comment.getUsername(), comment.getReplyText());
+                break;
+            case "tiktok":
+                success = platformClient.replyToTikTokComment(comment.getCommentId(), comment.getReplyText());
+                break;
+            default:
+                log.warn("Unknown social platform: {}. Reply logged: {}", comment.getPlatform(), comment.getReplyText());
+                break;
+        }
+
+        if (!success) {
+            throw new RuntimeException("Platform API reply failed or client credentials not configured.");
+        }
     }
 
     /**

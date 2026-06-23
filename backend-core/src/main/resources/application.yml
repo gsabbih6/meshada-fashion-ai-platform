@@ -57,6 +57,20 @@ jwt:
 meshada:
   ugc:
     scriptPath: ${MESHADA_UGC_SCRIPTPATH:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/orchestrator.py}
+  social:
+    instagram:
+      businessAccountId: ${INSTAGRAM_BUSINESS_ACCOUNT_ID:}
+      pageAccessToken: ${INSTAGRAM_PAGE_ACCESS_TOKEN:}
+    twitter:
+      apiKey: ${TWITTER_API_KEY:}
+      apiSecret: ${TWITTER_API_SECRET:}
+      accessToken: ${TWITTER_ACCESS_TOKEN:}
+      accessTokenSecret: ${TWITTER_ACCESS_TOKEN_SECRET:}
+      bearerToken: ${TWITTER_BEARER_TOKEN:}
+    tiktok:
+      clientKey: ${TIKTOK_CLIENT_KEY:}
+      clientSecret: ${TIKTOK_CLIENT_SECRET:}
+      accessToken: ${TIKTOK_ACCESS_TOKEN:}
   constants:
     kafka:
       signup_topic: SIGNED_UP
