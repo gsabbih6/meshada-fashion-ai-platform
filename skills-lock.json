@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "eachlabs-fashion-ai": {
+      "source": "eachlabs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/eachlabs-fashion-ai/SKILL.md",
+      "computedHash": "fb4ffdfe4d332c86eec3be95b4530324202ac5a78cf0b77a3fc5fe4f07e1a055"
+    },
+    "fal-tryon": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/fal-tryon/SKILL.md",
+      "computedHash": "e77ea5014777fe8b23c461e0bd7f0596a95f7c0ded1520e416078d698af2ec96"
+    },
+    "fashion-model-photography": {
+      "source": "tara-shopos/shopos-prototype",
+      "sourceType": "github",
+      "skillPath": "apps/api/src/skills/fashion-model-photography/SKILL.md",
+      "computedHash": "59e7c63e0d6e62a31b9d16d1d463a104dea0a122d65e7c6140fb595db6a5ec53"
+    },
+    "video-storyboard": {
+      "source": "agentara/skills",
+      "sourceType": "github",
+      "skillPath": "skills/aigc/video-storyboard/SKILL.md",
+      "computedHash": "15cf5d31a264868ce6bba8f4fe5945851a450e0bb65d9f5c203cf8f5ed5499d2"
+    }
+  }
+}

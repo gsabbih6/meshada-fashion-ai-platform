@@ -1,0 +1,117 @@
+spring:
+  web:
+    resources:
+      static-locations:
+        - classpath:/META-INF/resources/
+        - classpath:/resources/
+        - classpath:/static/
+        - classpath:/public/
+        - file:${MESHADA_UGC_STATIC_LOCATION:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/}
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            clientId: ${FACEBOOK_CLIENT_ID:}
+            clientSecret: ${FACEBOOK_CLIENT_SECRET:}
+            scope:
+              - email
+              - public_profile
+          google:
+            clientId: ${GOOGLE_CLIENT_ID:}
+            clientSecret: ${GOOGLE_CLIENT_SECRET:}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:meshada_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${PGUSER:gsabbih}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${PGPASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+  h2:
+    console:
+      enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} # Fallback to local Kafka if needed, but it might fail later. Let's see.
+  jpa:
+    hibernate:
+      ddl-auto: update
+    format-sql: false
+    show-sql: false
+  session:
+    jdbc:
+      initialize-schema: always
+  devtools:
+    remote:
+      restart:
+        enabled: true
+  application:
+    name: meshada_api_entrypoint
+#  mail:
+#    host: "smtp.gmail.com"
+#    port: 25
+#    password: Fredponksa45$
+#    username: gsabbih5@gmail.com
+jwt:
+  private:
+    key: classpath:rsa.private.key
+  public:
+    key: classpath:rsa.public.key
+meshada:
+  ugc:
+    scriptPath: ${MESHADA_UGC_SCRIPTPATH:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/orchestrator.py}
+  constants:
+    kafka:
+      signup_topic: SIGNED_UP
+      rating_topic: RATING
+      payment_topic: PAYMENTS
+      cashback_topic: CASHBACK
+      product_topic: PRODUCT
+      interaction_topic: INTERACTIONS
+      group_id: core-service-group-id
+    cashback:
+      percent: 0.6
+    microservice:
+      endpoint:
+        core_service: ${CORE_SERVICE_URL:http://meshada-api-service.meshada-api.svc.cluster.local:8080}
+        ai_service: ${AI_SERVICE_URL:http://meshada-ai-service-python:8000}
+        recommender_service: ${RECOMMENDER_SERVICE_URL:http://meshada-ai-service.meshada-api.svc.cluster.local:8080}
+    every.org:
+      baser_url: www.every.org
+  spark:
+    app:
+      name: MeshadaSpark
+    master: local[2]
+  stripe:
+    apiKey: ${STRIPE_API_KEY:}
+    endpointSecret: ${STRIPE_ENDPOINT_SECRET:}
+  pepper:
+    apiKey: ${PEPPERJAM_API_KEY:}
+  app:
+    url: https://www.meshada.com
+    webapp: https://www.meshada.com
+      #lang-chain4j:
+      #  chat-model:
+      #    provider: openai
+      #  openai:
+      #    api-key: ${OPENAI_API_KEY:}
+      #      model-name: gpt-3.5-turbo
+      #      temperature: 0.0
+      #      top-p: 1.0
+      #      max-tokens: 100
+      #      presence-penalty: 0.0
+      #      frequency-penalty: 0.0
+      #      timeout: PT60S
+      #      max-retries: 3
+      #      log-requests: true
+      #      log-responses: true
+      #
+      #logging:
+      #  level:
+      #    org:
+      #      hibernate:
+      #        SQL: ERROR
+      #        type: ERROR
+      #    dev:
+      #      langchain4j: DEBUG
+      #      ai4j:
+      #        openai4j: DEBUG
+server:
+  port: ${PORT:8080}

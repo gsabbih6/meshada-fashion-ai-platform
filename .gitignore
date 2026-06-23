@@ -1,0 +1,35 @@
+# IDE / Editor files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+*.log
+
+
+# Java / Maven
+**/target/
+
+# Node / JS
+**/node_modules/
+**/build/
+npm-debug.log*
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/venv/
+**/.env
+
+# Flutter / Dart
+**/.dart_tool/
+**/mobile_app/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# UGC Engine Outputs
+**/ugc-engine/python_scripts/output_assets/

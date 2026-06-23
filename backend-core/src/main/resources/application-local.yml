@@ -1,0 +1,109 @@
+spring:
+  web:
+    resources:
+      static-locations:
+        - classpath:/META-INF/resources/
+        - classpath:/resources/
+        - classpath:/static/
+        - classpath:/public/
+        - file:${MESHADA_UGC_STATIC_LOCATION:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/}
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            clientId: ${FACEBOOK_CLIENT_ID:}
+            clientSecret: ${FACEBOOK_CLIENT_SECRET:}
+            #            redirect-uri: http://localhost:4200/#/index
+            scope:
+              - email
+              - public_profile
+          google:
+            clientId: ${GOOGLE_CLIENT_ID:}
+            clientSecret: ${GOOGLE_CLIENT_SECRET:}
+  datasource:
+    url: jdbc:postgresql://localhost:5432/meshada_db
+    username: gsabbih
+    password: 
+    driver-class-name: org.postgresql.Driver
+  h2:
+    console:
+      enabled: false
+    kafka:
+      bootstrap-servers: localhost:29092
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  session:
+    jdbc:
+      initialize-schema: always
+  devtools:
+    remote:
+      restart:
+        enabled: true
+  application:
+    name: meshada_api_entrypoint
+jwt:
+  private:
+    key: classpath:rsa.private.key
+  public:
+    key: classpath:rsa.public.key
+meshada:
+  constants:
+    kafka:
+      signup_topic: SIGNED_UP
+      rating_topic: RATING
+      payment_topic: PAYMENTS
+      cashback_topic: CASHBACK
+      product_topic: PRODUCT
+      interaction_topic: INTERACTIONS
+    cashback:
+      percent: 0.6
+    microservice:
+      endpoint:
+        core_service: http://localhost:8080
+        ai_service: http://localhost:8000
+        recommender_service: http://localhost:8090
+    every.org:
+      baser_url: staging.every.org
+  spark:
+    app:
+      name: MeshadaSpark
+    master: local[2]
+  stripe:
+    apiKey: ${STRIPE_API_KEY:}
+    endpointSecret: ${STRIPE_ENDPOINT_SECRET:}
+  pepper:
+    apiKey: ${PEPPERJAM_API_KEY:}
+  app:
+    url: http://localhost:8080
+    webapp: http://localhost:3000
+
+#server:
+#  port: 9097
+
+#lang-chain4j:
+#  chat-model:
+#    provider: openai
+#    openai:
+#      api-key: ${OPENAI_API_KEY:}
+#      model-name: gpt-3.5-turbo
+#      temperature: 0.0
+#      top-p: 1.0
+#      max-tokens: 100
+#      presence-penalty: 0.0
+#      frequency-penalty: 0.0
+#      timeout: PT60S
+#      max-retries: 3
+#      log-requests: true
+#      log-responses: true
+logging:
+  level:
+    web: debug
+    sql: debug
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
