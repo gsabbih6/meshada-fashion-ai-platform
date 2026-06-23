@@ -6,6 +6,11 @@ WORKDIR /build
 COPY backend-core/pom.xml ./
 COPY backend-core/src ./src
 
+# Install openssl and automatically generate RSA keypair in resources classpath
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/* && \
+    openssl genrsa -out src/main/resources/rsa.private.key 2048 && \
+    openssl rsa -pubout -in src/main/resources/rsa.private.key -out src/main/resources/rsa.public.key
+
 # Build the Spring Boot application, skipping tests
 RUN mvn clean package -DskipTests
 
