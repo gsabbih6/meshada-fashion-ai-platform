@@ -107,3 +107,6 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+server:
+  address: 0.0.0.0
