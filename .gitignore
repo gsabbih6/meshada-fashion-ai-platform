@@ -33,3 +33,8 @@ npm-debug.log*
 
 # UGC Engine Outputs
 **/ugc-engine/python_scripts/output_assets/
+
+# RSA Keys
+**/rsa.private.key
+**/rsa.public.key
+
