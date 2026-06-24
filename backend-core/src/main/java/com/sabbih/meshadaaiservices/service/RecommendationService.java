@@ -13,6 +13,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
@@ -20,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 @Slf4j
 public class RecommendationService implements Serializable {
 

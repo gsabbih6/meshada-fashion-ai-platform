@@ -22,6 +22,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -45,6 +46,7 @@ import reactor.core.publisher.Mono;
  * - sendRecommendationUpdate(List<String> payloads): Sends updated recommendations to the core service.
  */
 @Service
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 @Slf4j
 public class ALSRecommendationProcessor implements Serializable {
 

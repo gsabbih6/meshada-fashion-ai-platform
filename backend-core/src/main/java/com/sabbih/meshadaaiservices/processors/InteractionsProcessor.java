@@ -11,6 +11,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +36,7 @@ import static org.apache.spark.sql.functions.*;
  * - calculatePopularity(Dataset<Row> df): Calculates the popularity score for each item in the dataset by assigning weights and scores based on the type and age of the interaction. It then aggregates the scores by item and sends the results to the core service using a WebClient.
  */
 @Service
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 @Slf4j
 public class InteractionsProcessor implements Serializable {
 

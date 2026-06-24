@@ -6,9 +6,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.util.concurrent.Executor;
 
 @Configuration
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 public class SparkConfig {
 
     @Value(value = "${meshada.spark.master}")

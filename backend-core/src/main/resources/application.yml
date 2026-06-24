@@ -90,9 +90,12 @@ meshada:
     every.org:
       baser_url: www.every.org
   spark:
+    enabled: ${MESHADA_SPARK_ENABLED:false}
     app:
       name: MeshadaSpark
     master: local[2]
+  kafka:
+    enabled: ${MESHADA_KAFKA_ENABLED:false}
   stripe:
     apiKey: ${STRIPE_API_KEY:}
     endpointSecret: ${STRIPE_ENDPOINT_SECRET:}

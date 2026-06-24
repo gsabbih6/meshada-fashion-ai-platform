@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/recommendations")
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 @Slf4j
 public class RecommendationController {
 

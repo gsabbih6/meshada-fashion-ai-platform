@@ -88,6 +88,7 @@ import com.sabbih.meshadaaiservices.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -98,6 +99,7 @@ import java.time.Duration;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "meshada.kafka.enabled", havingValue = "true")
 public class ProductListener {
   private final WebClient aiServiceWebClient;
   private final WebClient orchestratorWebClient;

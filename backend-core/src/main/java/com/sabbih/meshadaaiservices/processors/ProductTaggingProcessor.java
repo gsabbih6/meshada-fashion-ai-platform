@@ -8,6 +8,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,6 +22,7 @@ import java.util.Properties;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "meshada.spark.enabled", havingValue = "true")
 public class ProductTaggingProcessor implements Serializable {
     // Limit the number of concurrent requests to the AI service
     private static final int MAX_CONCURRENT_REQUESTS = 10; // Increased from 3 to 10
