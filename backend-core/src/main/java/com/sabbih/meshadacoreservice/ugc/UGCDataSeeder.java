@@ -52,6 +52,13 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .published(true)
                     .build();
 
+            videoRepository.saveAll(List.of(video1, video2, video3));
+            System.out.println("Seeding initial videos complete.");
+        }
+
+        if (videoRepository.findPlaceholderVideos().isEmpty()) {
+            System.out.println("Seeding UGC placeholder products...");
+            
             UGCVideo placeholder1 = UGCVideo.builder()
                     .url("https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800")
                     .affiliateLink("https://meshada.com/ref/placeholder1")
@@ -73,9 +80,8 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .published(false)
                     .build();
 
-
-            videoRepository.saveAll(List.of(video1, video2, video3, placeholder1, placeholder2, placeholder3));
-            System.out.println("Seeding complete.");
+            videoRepository.saveAll(List.of(placeholder1, placeholder2, placeholder3));
+            System.out.println("Seeding placeholders complete.");
         }
     }
 }
