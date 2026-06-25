@@ -16,6 +16,7 @@ import java.util.Map;
 public class SocialPublisherService {
 
     private final WebClient webClient;
+    private final SocialCredentialsRepository credentialsRepository;
 
     @Value("${meshada.social.instagram.pageAccessToken:}")
     private String instagramPageAccessToken;
@@ -35,8 +36,9 @@ public class SocialPublisherService {
     @Value("${meshada.social.pinterest.boardId:}")
     private String pinterestBoardId;
 
-    public SocialPublisherService(WebClient.Builder webClientBuilder) {
+    public SocialPublisherService(WebClient.Builder webClientBuilder, SocialCredentialsRepository credentialsRepository) {
         this.webClient = webClientBuilder.build();
+        this.credentialsRepository = credentialsRepository;
     }
 
     /**
@@ -88,14 +90,30 @@ public class SocialPublisherService {
      * 3. POST /v19.0/{businessAccountId}/media_publish?creation_id={creationId}
      */
     private void publishToInstagramReels(String videoUrl, String caption) {
-        if (instagramPageAccessToken == null || instagramPageAccessToken.isEmpty() ||
-                instagramBusinessAccountId == null || instagramBusinessAccountId.isEmpty()) {
+        String pageToken = instagramPageAccessToken;
+        String bizAccountId = instagramBusinessAccountId;
+
+        // Dynamic lookup from database
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            if (creds.getAccessToken() != null && !creds.getAccessToken().isEmpty()) {
+                pageToken = creds.getAccessToken();
+            }
+            if (creds.getBusinessAccountId() != null && !creds.getBusinessAccountId().isEmpty()) {
+                bizAccountId = creds.getBusinessAccountId();
+            }
+        }
+
+        if (pageToken == null || pageToken.isEmpty() ||
+                bizAccountId == null || bizAccountId.isEmpty()) {
             log.warn("[Instagram Publisher] Credentials not configured. Reels publishing skipped.");
             return;
         }
 
         log.info("[Instagram Publisher] Creating Reels media container...");
-        String mediaUrl = "https://graph.facebook.com/v19.0/" + instagramBusinessAccountId + "/media";
+        String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
+        final String finalPageToken = pageToken;
 
         Map response = webClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -103,7 +121,7 @@ public class SocialPublisherService {
                         .queryParam("media_type", "REELS")
                         .queryParam("video_url", videoUrl)
                         .queryParam("caption", caption)
-                        .queryParam("access_token", instagramPageAccessToken)
+                        .queryParam("access_token", finalPageToken)
                         .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -135,7 +153,7 @@ public class SocialPublisherService {
                     .uri(uriBuilder -> uriBuilder
                             .path(statusCheckUrl)
                             .queryParam("fields", "status_code")
-                            .queryParam("access_token", instagramPageAccessToken)
+                            .queryParam("access_token", finalPageToken)
                             .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
@@ -161,13 +179,13 @@ public class SocialPublisherService {
         }
 
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
-        String publishUrl = "https://graph.facebook.com/v19.0/" + instagramBusinessAccountId + "/media_publish";
+        String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
 
         Map publishResponse = webClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path(publishUrl)
                         .queryParam("creation_id", creationId)
-                        .queryParam("access_token", instagramPageAccessToken)
+                        .queryParam("access_token", finalPageToken)
                         .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()

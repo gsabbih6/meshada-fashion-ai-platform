@@ -17,6 +17,7 @@ class SocialPinterestTests {
     private CommentReplyEngine replyEngine;
     private SocialPlatformClient platformClient;
     private SocialResponderService responderService;
+    private SocialCredentialsRepository credentialsRepository;
 
     @BeforeEach
     void setUp() {
@@ -24,12 +25,13 @@ class SocialPinterestTests {
         videoRepository = mock(UGCVideoRepository.class);
         replyEngine = mock(CommentReplyEngine.class);
         platformClient = mock(SocialPlatformClient.class);
+        credentialsRepository = mock(SocialCredentialsRepository.class);
         responderService = new SocialResponderService(commentRepository, videoRepository, replyEngine, platformClient);
     }
 
     @Test
     void testReplyToPinterestCommentReturnsFalse() {
-        SocialPlatformClient client = new SocialPlatformClient(WebClient.builder());
+        SocialPlatformClient client = new SocialPlatformClient(WebClient.builder(), credentialsRepository);
         boolean result = client.replyToPinterestComment("123", "Nice!");
         assertFalse(result);
     }
@@ -57,7 +59,7 @@ class SocialPinterestTests {
     @Test
     void testSocialPublisherPinterestPublishingGracefullyHandlesEmptyCredentials() {
         // Create publisher with empty WebClient
-        SocialPublisherService publisher = new SocialPublisherService(WebClient.builder());
+        SocialPublisherService publisher = new SocialPublisherService(WebClient.builder(), credentialsRepository);
         
         UGCVideo video = UGCVideo.builder()
                 .id(1L)

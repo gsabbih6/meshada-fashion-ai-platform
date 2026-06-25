@@ -15,6 +15,7 @@ import java.util.Map;
 public class SocialPlatformClient {
 
     private final WebClient webClient;
+    private final SocialCredentialsRepository credentialsRepository;
 
     @Value("${meshada.social.instagram.pageAccessToken:}")
     private String instagramPageAccessToken;
@@ -28,8 +29,9 @@ public class SocialPlatformClient {
     @Value("${meshada.social.tiktok.accessToken:}")
     private String tiktokAccessToken;
 
-    public SocialPlatformClient(WebClient.Builder webClientBuilder) {
+    public SocialPlatformClient(WebClient.Builder webClientBuilder, SocialCredentialsRepository credentialsRepository) {
         this.webClient = webClientBuilder.build();
+        this.credentialsRepository = credentialsRepository;
     }
 
     /**
@@ -37,7 +39,13 @@ public class SocialPlatformClient {
      * Meta Graph API: POST /v19.0/{comment-id}/replies
      */
     public boolean replyToInstagramComment(String commentId, String message) {
-        if (instagramPageAccessToken == null || instagramPageAccessToken.isEmpty()) {
+        String pageToken = instagramPageAccessToken;
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent() && credsOpt.get().getAccessToken() != null && !credsOpt.get().getAccessToken().isEmpty()) {
+            pageToken = credsOpt.get().getAccessToken();
+        }
+
+        if (pageToken == null || pageToken.isEmpty()) {
             log.warn("[Instagram Client] Page Access Token not configured. Reply logged: {}", message);
             return false;
         }
@@ -45,12 +53,13 @@ public class SocialPlatformClient {
         try {
             log.info("[Instagram Client] Sending auto-reply to comment ID: {}", commentId);
             String url = "https://graph.facebook.com/v19.0/" + commentId + "/replies";
+            final String finalPageToken = pageToken;
 
             Map<String, String> response = webClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path(url)
                             .queryParam("message", message)
-                            .queryParam("access_token", instagramPageAccessToken)
+                            .queryParam("access_token", finalPageToken)
                             .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
@@ -75,7 +84,13 @@ public class SocialPlatformClient {
      * Meta Graph API: POST /v19.0/{comment-id}/private_replies
      */
     public boolean sendPrivateDMToInstagramComment(String commentId, String message) {
-        if (instagramPageAccessToken == null || instagramPageAccessToken.isEmpty()) {
+        String pageToken = instagramPageAccessToken;
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent() && credsOpt.get().getAccessToken() != null && !credsOpt.get().getAccessToken().isEmpty()) {
+            pageToken = credsOpt.get().getAccessToken();
+        }
+
+        if (pageToken == null || pageToken.isEmpty()) {
             log.warn("[Instagram Client] Page Access Token not configured. Private DM logged: {}", message);
             return false;
         }
@@ -83,12 +98,13 @@ public class SocialPlatformClient {
         try {
             log.info("[Instagram Client] Sending private DM to comment ID: {}", commentId);
             String url = "https://graph.facebook.com/v19.0/" + commentId + "/private_replies";
+            final String finalPageToken = pageToken;
 
             Map response = webClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path(url)
                             .queryParam("message", message)
-                            .queryParam("access_token", instagramPageAccessToken)
+                            .queryParam("access_token", finalPageToken)
                             .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
