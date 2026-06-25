@@ -31,6 +31,7 @@ public class UGCEngineService {
     }
 
     public boolean generateUGCForProduct(String productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
+        StringBuilder output = new StringBuilder();
         try {
             
             ProcessBuilder pb = new ProcessBuilder(
@@ -46,7 +47,6 @@ public class UGCEngineService {
             Process process = pb.start();
             
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
@@ -97,6 +97,7 @@ public class UGCEngineService {
             }
 
         } catch (Exception e) {
+            System.err.println("UGC Engine encountered an exception during processing. Raw output was:\n" + output.toString());
             e.printStackTrace();
             return false;
         }
