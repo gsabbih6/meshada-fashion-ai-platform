@@ -30,7 +30,7 @@ public class UGCEngineService {
         this.socialPublisherService = socialPublisherService;
     }
 
-    public void generateUGCForProduct(String productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
+    public boolean generateUGCForProduct(String productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
         try {
             
             ProcessBuilder pb = new ProcessBuilder(
@@ -63,7 +63,14 @@ public class UGCEngineService {
                     String jsonArrayStr = jsonOutput.substring(jsonStart, jsonEnd + 1);
                     List<Map<String, String>> generatedAssets = objectMapper.readValue(jsonArrayStr, new TypeReference<List<Map<String, String>>>(){});
                     
+                    boolean created = false;
                     for (Map<String, String> asset : generatedAssets) {
+                        String backend = asset.get("backend");
+                        if ("mock".equalsIgnoreCase(backend)) {
+                            System.err.println("[UGC Engine] Python script returned mock backend. Treating as credit exhaustion fallback.");
+                            return false;
+                        }
+
                         UGCVideo video = new UGCVideo();
                         video.setUrl(asset.get("final_video_url"));
                         video.setAffiliateLink(affiliateLink);
@@ -75,18 +82,23 @@ public class UGCEngineService {
                         
                         UGCVideo savedVideo = ugcVideoRepository.save(video);
                         socialPublisherService.publishVideoToSocial(savedVideo);
+                        created = true;
                     }
+                    return created;
                 } else {
                     System.err.println("UGC Engine completed but no JSON output found starting with [{\".");
                     System.err.println("Full Output: " + jsonOutput);
+                    return false;
                 }
             } else {
                 System.err.println("UGC Engine failed with exit code: " + exitCode);
                 System.err.println("Output: " + output.toString());
+                return false;
             }
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 }

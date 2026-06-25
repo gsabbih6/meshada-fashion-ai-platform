@@ -1,0 +1,96 @@
+package com.sabbih.meshadacoreservice.ugc;
+
+import com.sabbih.meshadacoreservice.social.SocialPublisherService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Random;
+
+@Service
+@Slf4j
+public class UGCAutoSchedulerService {
+
+    private final UGCVideoRepository videoRepository;
+    private final UGCEngineService ugcEngineService;
+    private final SocialPublisherService socialPublisherService;
+    private final Random random = new Random();
+
+    @Autowired
+    public UGCAutoSchedulerService(UGCVideoRepository videoRepository,
+                                   UGCEngineService ugcEngineService,
+                                   SocialPublisherService socialPublisherService) {
+        this.videoRepository = videoRepository;
+        this.ugcEngineService = ugcEngineService;
+        this.socialPublisherService = socialPublisherService;
+    }
+
+    /**
+     * Scheduled daily task to post a video.
+     * Default: Daily at 9:00 AM.
+     */
+    @Scheduled(cron = "${meshada.ugc.scheduler.cron:0 0 9 * * *}")
+    public void runDailyUGCPost() {
+        log.info("[UGC Scheduler] Starting scheduled daily UGC generation and posting task...");
+
+        // 1. Fetch all placeholders that do not have generated videos yet
+        List<UGCVideo> placeholders = videoRepository.findPlaceholderVideos();
+
+        if (placeholders.isEmpty()) {
+            log.warn("[UGC Scheduler] No new placeholder products found in the database. Falling back to an old video.");
+            postOldVideoFallback();
+            return;
+        }
+
+        // 2. Select a random product to generate
+        UGCVideo placeholder = placeholders.get(random.nextInt(placeholders.size()));
+        log.info("[UGC Scheduler] Selected placeholder product: {} (ID: {}) for daily generation.", 
+                placeholder.getItemName(), placeholder.getId());
+
+        // Extract parameters for generator
+        // Use placeholder ID as productId, or clean it to fit generator requirements
+        String productId = "prod_" + placeholder.getId();
+        String productName = placeholder.getItemName();
+        String productDescription = "Official styled look for " + productName;
+        String productImageUrl = placeholder.getUrl(); // placeholder url is the catalog image URL
+        String productType = "fashion";
+        String affiliateLink = placeholder.getAffiliateLink();
+
+        // 3. Attempt to generate new video
+        log.info("[UGC Scheduler] Triggering EachLabs video generation for product ID: {}", productId);
+        boolean success = ugcEngineService.generateUGCForProduct(
+                productId, productName, productDescription, productImageUrl, productType, affiliateLink
+        );
+
+        if (success) {
+            log.info("[UGC Scheduler] Successfully generated and published new UGC video for: {}", productName);
+        } else {
+            // 4. Fallback to old video if credits are exhausted / generation fails
+            log.warn("[UGC Scheduler] UGC video generation failed (likely credit exhaustion). Falling back to reposting an old video.");
+            postOldVideoFallback();
+        }
+    }
+
+    /**
+     * Fallback logic: select a random completed AI video from database and repost it.
+     */
+    public void postOldVideoFallback() {
+        log.info("[UGC Scheduler] Retrieving historical generated videos for fallback reposting...");
+        List<UGCVideo> oldVideos = videoRepository.findGeneratedVideos();
+
+        if (oldVideos.isEmpty()) {
+            log.error("[UGC Scheduler] Reposting failed: No previously generated videos found in the database.");
+            return;
+        }
+
+        // Pick a random historical video
+        UGCVideo oldVideo = oldVideos.get(random.nextInt(oldVideos.size()));
+        log.info("[UGC Scheduler] Reposting old video: {} (ID: {}, URL: {}) to social media.", 
+                oldVideo.getItemName(), oldVideo.getId(), oldVideo.getUrl());
+
+        // Trigger social publisher
+        socialPublisherService.publishVideoToSocial(oldVideo);
+    }
+}
