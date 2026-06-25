@@ -1,6 +1,7 @@
 package com.sabbih.meshadacoreservice.social;
 
 import com.sabbih.meshadacoreservice.ugc.UGCVideo;
+import com.sabbih.meshadacoreservice.ugc.UGCVideoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +20,7 @@ public class SocialPublisherService {
 
     private final WebClient webClient;
     private final SocialCredentialsRepository credentialsRepository;
+    private final UGCVideoRepository videoRepository;
 
     @Value("${meshada.social.instagram.pageAccessToken:}")
     private String instagramPageAccessToken;
@@ -38,9 +40,12 @@ public class SocialPublisherService {
     @Value("${meshada.social.pinterest.boardId:}")
     private String pinterestBoardId;
 
-    public SocialPublisherService(WebClient.Builder webClientBuilder, SocialCredentialsRepository credentialsRepository) {
+    public SocialPublisherService(WebClient.Builder webClientBuilder, 
+                                 SocialCredentialsRepository credentialsRepository,
+                                 UGCVideoRepository videoRepository) {
         this.webClient = webClientBuilder.build();
         this.credentialsRepository = credentialsRepository;
+        this.videoRepository = videoRepository;
     }
 
     /**
@@ -55,9 +60,12 @@ public class SocialPublisherService {
         log.info("[Social Publisher] Starting auto-publishing workflow for video ID: {} ({})", 
                 video.getId(), video.getItemName());
 
+        boolean instagramSuccess = false;
+        boolean pinterestSuccess = false;
+
         // 1. Post to Instagram Reels
         try {
-            publishToInstagramReels(video.getUrl(), caption);
+            instagramSuccess = publishToInstagramReels(video.getUrl(), caption);
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Instagram: {}", e.getMessage());
         }
@@ -78,9 +86,16 @@ public class SocialPublisherService {
 
         // 4. Post to Pinterest
         try {
-            publishToPinterest(video.getUrl(), video.getItemName(), caption, video.getAffiliateLink(), video.getVtonImageUrl());
+            pinterestSuccess = publishToPinterest(video.getUrl(), video.getItemName(), caption, video.getAffiliateLink(), video.getVtonImageUrl());
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
+        }
+
+        // Save publication state if at least one main platform succeeded
+        if (instagramSuccess || pinterestSuccess) {
+            video.setPublished(true);
+            videoRepository.save(video);
+            log.info("[Social Publisher] Successfully marked video ID: {} as published in database.", video.getId());
         }
     }
 
@@ -91,7 +106,7 @@ public class SocialPublisherService {
      * 2. Poll /v19.0/{creationId} for status_code == FINISHED
      * 3. POST /v19.0/{businessAccountId}/media_publish?creation_id={creationId}
      */
-    private void publishToInstagramReels(String videoUrl, String caption) {
+    private boolean publishToInstagramReels(String videoUrl, String caption) {
         String pageToken = instagramPageAccessToken;
         String bizAccountId = instagramBusinessAccountId;
 
@@ -110,7 +125,7 @@ public class SocialPublisherService {
         if (pageToken == null || pageToken.isEmpty() ||
                 bizAccountId == null || bizAccountId.isEmpty()) {
             log.warn("[Instagram Publisher] Credentials not configured. Reels publishing skipped.");
-            return;
+            return false;
         }
 
         log.info("[Instagram Publisher] Creating Reels media container...");
@@ -134,7 +149,7 @@ public class SocialPublisherService {
 
         if (response == null || !response.containsKey("id")) {
             log.error("[Instagram Publisher] Failed to create Reels container. Response: {}", response);
-            return;
+            return false;
         }
 
         String creationId = response.get("id").toString();
@@ -150,7 +165,7 @@ public class SocialPublisherService {
                 Thread.sleep(10000); // Wait 10 seconds between checks
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-                return;
+                return false;
             }
 
             URI checkUri = UriComponentsBuilder.fromHttpUrl(statusCheckUrl)
@@ -173,7 +188,7 @@ public class SocialPublisherService {
                     finished = true;
                 } else if ("ERROR".equalsIgnoreCase(statusCode)) {
                     log.error("[Instagram Publisher] Reels processing finished with ERROR: {}", statusResponse);
-                    return;
+                    return false;
                 }
             }
             attempts++;
@@ -181,7 +196,7 @@ public class SocialPublisherService {
 
         if (!finished) {
             log.error("[Instagram Publisher] Reels processing timed out on Meta's server.");
-            return;
+            return false;
         }
 
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
@@ -202,8 +217,10 @@ public class SocialPublisherService {
 
         if (publishResponse != null && publishResponse.containsKey("id")) {
             log.info("[Instagram Publisher] Reels published successfully! Post ID: {}", publishResponse.get("id"));
+            return true;
         } else {
             log.error("[Instagram Publisher] Failed to publish Reels: {}", publishResponse);
+            return false;
         }
     }
 
@@ -289,11 +306,11 @@ public class SocialPublisherService {
      * Publish Pin on Pinterest.
      * Pinterest API v5: POST https://api.pinterest.com/v5/pins
      */
-    private void publishToPinterest(String mediaUrl, String title, String description, String link, String coverImageUrl) {
+    private boolean publishToPinterest(String mediaUrl, String title, String description, String link, String coverImageUrl) {
         if (pinterestAccessToken == null || pinterestAccessToken.isEmpty() ||
                 pinterestBoardId == null || pinterestBoardId.isEmpty()) {
             log.warn("[Pinterest Publisher] Access Token or Board ID not configured. Pinterest publishing skipped.");
-            return;
+            return false;
         }
 
         log.info("[Pinterest Publisher] Creating Pin on board: {}", pinterestBoardId);
@@ -327,11 +344,14 @@ public class SocialPublisherService {
 
             if (response != null && response.containsKey("id")) {
                 log.info("[Pinterest Publisher] Pin created successfully! Pin ID: {}", response.get("id"));
+                return true;
             } else {
                 log.error("[Pinterest Publisher] Failed to create Pin: {}", response);
+                return false;
             }
         } catch (Exception e) {
             log.error("[Pinterest Publisher] Failed to create Pin: {}", e.getMessage(), e);
+            return false;
         }
     }
 }

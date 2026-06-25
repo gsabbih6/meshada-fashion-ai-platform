@@ -35,7 +35,17 @@ public class UGCAutoSchedulerService {
     public void runDailyUGCPost() {
         log.info("[UGC Scheduler] Starting scheduled daily UGC generation and posting task...");
 
-        // 1. Fetch all placeholders that do not have generated videos yet
+        // 1. Check if there are generated videos that have not been published yet
+        List<UGCVideo> unpublishedVideos = videoRepository.findUnpublishedVideos();
+        if (unpublishedVideos != null && !unpublishedVideos.isEmpty()) {
+            UGCVideo videoToPublish = unpublishedVideos.get(0);
+            log.info("[UGC Scheduler] Found unpublished video in database: {} (ID: {}). Posting it directly without generating a new one.", 
+                    videoToPublish.getItemName(), videoToPublish.getId());
+            socialPublisherService.publishVideoToSocial(videoToPublish);
+            return;
+        }
+
+        // 2. Fetch all placeholders that do not have generated videos yet
         List<UGCVideo> placeholders = videoRepository.findPlaceholderVideos();
 
         if (placeholders.isEmpty()) {

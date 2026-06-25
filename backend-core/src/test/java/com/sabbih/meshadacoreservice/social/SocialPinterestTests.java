@@ -59,7 +59,7 @@ class SocialPinterestTests {
     @Test
     void testSocialPublisherPinterestPublishingGracefullyHandlesEmptyCredentials() {
         // Create publisher with empty WebClient
-        SocialPublisherService publisher = new SocialPublisherService(WebClient.builder(), credentialsRepository);
+        SocialPublisherService publisher = new SocialPublisherService(WebClient.builder(), credentialsRepository, videoRepository);
         
         UGCVideo video = UGCVideo.builder()
                 .id(1L)
