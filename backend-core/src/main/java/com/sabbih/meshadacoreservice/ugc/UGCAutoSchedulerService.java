@@ -69,7 +69,7 @@ public class UGCAutoSchedulerService {
         String affiliateLink = placeholder.getAffiliateLink();
 
         // 3. Attempt to generate new video
-        log.info("[UGC Scheduler] Triggering EachLabs video generation for product ID: {}", productId);
+        log.info("[UGC Scheduler] Triggering UGC video generation for product ID: {}", productId);
         boolean success = ugcEngineService.generateUGCForProduct(
                 productId, productName, productDescription, productImageUrl, productType, affiliateLink
         );
