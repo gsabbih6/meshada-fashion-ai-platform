@@ -1,5 +1,6 @@
 package com.sabbih.meshadacoreservice.ugc;
 
+import com.sabbih.meshadacoreservice.social.SocialPublisherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,14 +15,17 @@ public class UGCFeedController {
     private final UGCVideoRepository videoRepository;
     private final UGCEngineService ugcEngineService;
     private final UGCAutoSchedulerService schedulerService;
+    private final SocialPublisherService socialPublisherService;
 
     @Autowired
     public UGCFeedController(UGCVideoRepository videoRepository, 
                              UGCEngineService ugcEngineService, 
-                             UGCAutoSchedulerService schedulerService) {
+                             UGCAutoSchedulerService schedulerService,
+                             SocialPublisherService socialPublisherService) {
         this.videoRepository = videoRepository;
         this.ugcEngineService = ugcEngineService;
         this.schedulerService = schedulerService;
+        this.socialPublisherService = socialPublisherService;
     }
 
     @GetMapping("/feed")
@@ -52,5 +56,17 @@ public class UGCFeedController {
             schedulerService.runDailyUGCPost();
         }).start();
         return ResponseEntity.ok("UGC posting scheduler triggered manually in the background.");
+    }
+
+    @PostMapping("/post/{id}")
+    public ResponseEntity<String> postVideoManually(@PathVariable Long id) {
+        java.util.Optional<UGCVideo> videoOpt = videoRepository.findById(id);
+        if (videoOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        new Thread(() -> {
+            socialPublisherService.publishVideoToSocial(videoOpt.get());
+        }).start();
+        return ResponseEntity.ok("UGC Video publication started in the background for ID: " + id);
     }
 }
