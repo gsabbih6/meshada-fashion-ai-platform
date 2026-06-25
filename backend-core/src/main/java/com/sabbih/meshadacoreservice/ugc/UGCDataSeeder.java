@@ -29,6 +29,7 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .itemName("Summer Dress")
                     .script("Obsessed with this Summer Dress. The fit is absolutely flawless. Tap the link to shop my exact look.")
                     .createdAt(LocalDateTime.now())
+                    .published(true)
                     .build();
 
             UGCVideo video2 = UGCVideo.builder()
@@ -38,6 +39,7 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .itemName("Leather Jacket")
                     .script("Streetwear essential unlocked 🔥 This Leather Jacket is everything. Check the link to cop this fit.")
                     .createdAt(LocalDateTime.now().minusHours(1))
+                    .published(true)
                     .build();
 
             UGCVideo video3 = UGCVideo.builder()
@@ -47,6 +49,7 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .itemName("Running Shoes")
                     .script("Hey! I just found the cutest Running Shoes ever. It's so good, I had to share. Link in bio! 💕")
                     .createdAt(LocalDateTime.now().minusHours(2))
+                    .published(true)
                     .build();
 
 
