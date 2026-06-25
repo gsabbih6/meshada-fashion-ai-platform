@@ -28,5 +28,10 @@ public class UGCVideo {
     private String affiliateLink;
     private String modelName;
     private String itemName;
+    
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    private String script;
+    
     private LocalDateTime createdAt;
 }
+

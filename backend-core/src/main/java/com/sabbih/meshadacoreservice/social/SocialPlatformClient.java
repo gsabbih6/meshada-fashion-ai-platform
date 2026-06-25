@@ -71,6 +71,45 @@ public class SocialPlatformClient {
     }
 
     /**
+     * Send a private reply DM to an Instagram Comment.
+     * Meta Graph API: POST /v19.0/{comment-id}/private_replies
+     */
+    public boolean sendPrivateDMToInstagramComment(String commentId, String message) {
+        if (instagramPageAccessToken == null || instagramPageAccessToken.isEmpty()) {
+            log.warn("[Instagram Client] Page Access Token not configured. Private DM logged: {}", message);
+            return false;
+        }
+
+        try {
+            log.info("[Instagram Client] Sending private DM to comment ID: {}", commentId);
+            String url = "https://graph.facebook.com/v19.0/" + commentId + "/private_replies";
+
+            Map response = webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(url)
+                            .queryParam("message", message)
+                            .queryParam("access_token", instagramPageAccessToken)
+                            .build())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Instagram Client] Private DM sent successfully. Response ID: {}", response.get("id"));
+                return true;
+            }
+            log.warn("[Instagram Client] Received unexpected private DM response: {}", response);
+            return false;
+
+        } catch (Exception e) {
+            log.error("[Instagram Client] Failed to send private DM: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+
      * Reply to a Twitter/X Tweet.
      * Twitter API v2: POST /2/tweets
      */

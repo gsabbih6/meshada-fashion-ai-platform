@@ -18,6 +18,14 @@ public class CommentReplyEngine {
         "Thanks babe! 💖 You can shop this look: %s"
     );
 
+    private static final List<String> INSTAGRAM_PUBLIC_REPLIES = List.of(
+        "Just sent the link to your DMs! Check your messages 💌",
+        "Check your inbox! DMed you the link 🛍️",
+        "Sent you a DM with the link! Let me know if you get it 💕",
+        "Just slid into your DMs with the link! 😘",
+        "DMed you the link! Happy shopping! ✨"
+    );
+
     private final Random random = new Random();
 
     public String generateReply(String commentText, String productLink) {
@@ -25,4 +33,9 @@ public class CommentReplyEngine {
         String template = REPLY_TEMPLATES.get(random.nextInt(REPLY_TEMPLATES.size()));
         return String.format(template, productLink);
     }
+
+    public String generateInstagramPublicReply() {
+        return INSTAGRAM_PUBLIC_REPLIES.get(random.nextInt(INSTAGRAM_PUBLIC_REPLIES.size()));
+    }
 }
+

@@ -40,11 +40,11 @@ public class ProductFeedController {
      */
     @PostMapping("/fetch-pepperjam")
     public ResponseEntity<Map<String, Object>> fetchPepperjamProducts(
-            @RequestParam(defaultValue = "4977") String programId) {
+            @RequestParam(defaultValue = "7942") String programId) {
 
         try {
             String url = String.format(
-                "https://api.pepperjamnetwork.com/20120402/publisher/creative/product?format=json&programId=%s&apiKey=%s",
+                "https://api.pepperjamnetwork.com/20120402/publisher/creative/product?format=json&programIds=%s&apiKey=%s",
                 programId, pepperApiKey);
 
             PepperJamProduct response = pepperClient.get()

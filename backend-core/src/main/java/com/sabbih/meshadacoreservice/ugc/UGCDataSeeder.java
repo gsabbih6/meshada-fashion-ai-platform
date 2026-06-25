@@ -27,6 +27,7 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .affiliateLink("https://meshada.com/ref/123")
                     .modelName("Veo 3")
                     .itemName("Summer Dress")
+                    .script("Obsessed with this Summer Dress. The fit is absolutely flawless. Tap the link to shop my exact look.")
                     .createdAt(LocalDateTime.now())
                     .build();
 
@@ -35,6 +36,7 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .affiliateLink("https://meshada.com/ref/456")
                     .modelName("Luma Dream Machine")
                     .itemName("Leather Jacket")
+                    .script("Streetwear essential unlocked 🔥 This Leather Jacket is everything. Check the link to cop this fit.")
                     .createdAt(LocalDateTime.now().minusHours(1))
                     .build();
 
@@ -43,8 +45,10 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .affiliateLink("https://meshada.com/ref/789")
                     .modelName("Runway Gen-3 Alpha")
                     .itemName("Running Shoes")
+                    .script("Hey! I just found the cutest Running Shoes ever. It's so good, I had to share. Link in bio! 💕")
                     .createdAt(LocalDateTime.now().minusHours(2))
                     .build();
+
 
             videoRepository.saveAll(List.of(video1, video2, video3));
             System.out.println("Seeding complete.");

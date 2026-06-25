@@ -25,6 +25,7 @@ import traceback
 import time
 import subprocess
 import shutil
+import random
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -55,6 +56,7 @@ HF_VIDEO_MODEL = "higgsfield-ai/dop/standard"
 EACHLABS_VTON_MODEL = "kling-v1-5-kolors-virtual-try-on"
 EACHLABS_VIDEO_MODEL = "pixverse-v5-6-image-to-video"
 EACHLABS_MODELSHOOT = "product-photo-to-modelshoot"
+EACHLABS_IMG2IMG_MODEL = "nano-banana-2-edit"
 EACHLABS_BASE_URL = "https://api.eachlabs.ai/v1"
 
 
@@ -231,90 +233,90 @@ def detect_product_category(product_name: str, product_description: str) -> str:
 SCENE_TEMPLATES = {
     "streetwear": {
         "dress": [
-            {"name": "Detail", "duration": 2, "motion_prompt": "extreme close-up of fashion model's dress detail, slow pan highlighting fabric texture, professional fashion film"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "street style photography, fashion model walking towards camera in city alley, dynamic stride, confident smile"},
-            {"name": "Turn", "duration": 3, "motion_prompt": "fashion model spins gracefully, dress flares out, urban background with neon lights, slow motion cinematic"}
+            {"name": "Detail", "duration": 2, "motion_prompt": "extreme close-up of dress detail, slow pan highlighting fabric weave texture, photorealistic organic folds, handheld camera micro-drift, soft city lighting"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "street style video, fashion model walking towards camera in busy city alley, dynamic confident stride, natural camera shake, ambient street reflections, realistic depth blur"},
+            {"name": "Turn", "duration": 3, "motion_prompt": "fashion model spins gracefully on city pavement, dress flares out with realistic cloth physics, urban neon lights, cinematic slow motion, camera focus breathing"}
         ],
         "outerwear": [
-            {"name": "Detail", "duration": 2, "motion_prompt": "close-up of jacket texture, model zipping up jacket collar naturally, urban streetwear aesthetic"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "fashion model struts confidently down wet city street, street style photoshoot, camera tracks back"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "fashion model pulls hood over curls, turns profile looking away, street art background, handheld camera"}
+            {"name": "Detail", "duration": 2, "motion_prompt": "close-up of jacket zipper and fabric texture, model adjusting collar naturally, handheld camera feel, raw concrete backdrop, natural lighting shadows"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "streetwear model struts confidently down wet city street, street style film, camera tracking backwards smoothly, subtle camera shake, reflections in puddles"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model pulls hood over curls, turns profile looking away, graffiti wall background, cinematic lighting, realistic camera drift, handheld camera"}
         ],
         "pants": [
-            {"name": "Walk", "duration": 3, "motion_prompt": "low angle camera tracking model's walking stride, showing sneakers and pants in motion, street background"},
-            {"name": "Turn", "duration": 2, "motion_prompt": "fashion model spins slowly, hands in pockets, looking over shoulder at camera with confident attitude"},
-            {"name": "Pose", "duration": 3, "motion_prompt": "fashion model strikes a streetwear pose leaning against concrete wall, direct confident gaze"}
+            {"name": "Walk", "duration": 3, "motion_prompt": "low angle camera tracking model's walking stride, showing sneakers and loose pants in motion, organic fabric folds, handheld camera micro-drift, gritty street environment"},
+            {"name": "Turn", "duration": 2, "motion_prompt": "model spins slowly, hands in pockets, looking over shoulder at camera with confident attitude, camera refocuses, natural daylight shadows"},
+            {"name": "Pose", "duration": 3, "motion_prompt": "street style photoshoot, model strikes pose leaning against concrete pillar, direct confident gaze, handheld camera breathing, shallow depth-of-field"}
         ],
         "tops": [
-            {"name": "Detail", "duration": 2, "motion_prompt": "close-up of graphic tee print, model adjusts sleeves naturally, urban streetwear mood"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "fashion model walks casually on urban street, looking towards camera, warm street lighting"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model strikes a casual pose, smiles at camera, urban background, film grain texture"}
+            {"name": "Detail", "duration": 2, "motion_prompt": "close-up of graphic tee print and cotton texture, model adjusting sleeves, handheld camera micro-drift, urban streetwear vibe, natural lighting"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "streetwear model walks casually on urban street, looking towards camera, warm street lamp glow, realistic lens flare, subtle handheld camera breathing"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model strikes a casual streetwear pose, smiles at camera, urban sunset background, film grain texture, handheld camera, natural depth-of-field"}
         ]
     },
     "editorial": {
         "dress": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "slow cinematic tilt showing elegant dress hem to shoulders, soft luxury studio lighting, high fashion"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "high fashion model walks gracefully on minimal studio runway, elegant movement, slow motion 60fps"},
-            {"name": "Reveal", "duration": 3, "motion_prompt": "editorial fashion pose, model turns slowly showing open back of dress, serene confidence, dramatic shadow"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "slow cinematic tilt showing elegant dress hem to shoulders, soft luxury studio lighting, high fashion film, clean plaster wall backdrop, camera micro-drift"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "high fashion model walks gracefully on minimal studio runway, elegant posture, slow motion 60fps, wind machine blowing dress hem, realistic cloth physics"},
+            {"name": "Reveal", "duration": 3, "motion_prompt": "editorial fashion pose, model turns slowly showing open back details of dress, serene confidence, dramatic key light, high contrast shadows"}
         ],
         "outerwear": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "high fashion model wearing structured blazer, adjusts lapels elegantly, minimalist studio backdrop"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "fashion model walks on runway, dramatic lighting catches structured shoulders of coat, cinematic fashion film"},
-            {"name": "Pose", "duration": 3, "motion_prompt": "editorial pose, model turns slowly, dramatic key light, high contrast shadows, haute couture aesthetic"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "high fashion portrait, model wearing structured blazer, adjusts lapels elegantly, minimalist studio backdrop, soft diffused key lighting, camera breathing"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "editorial fashion film, model walks on runway, dramatic spotlight catches structured shoulders of coat, camera tracks back, subtle handheld drift"},
+            {"name": "Pose", "duration": 3, "motion_prompt": "editorial pose, model turns slowly, dramatic key light, high contrast shadows, haute couture aesthetic, photorealistic fabric drape and texture"}
         ],
         "pants": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "editorial shot, model strikes asymmetric pose highlighting clean lines of high-waist trousers, studio lighting"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walks with high-fashion posture, trousers drape beautifully in motion, studio wind machine"},
-            {"name": "Pose", "duration": 3, "motion_prompt": "model turns three-quarter, looks directly into camera lens with high-fashion intensity"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "editorial shot, model strikes asymmetric pose highlighting clean lines of high-waist trousers, dramatic studio lighting, camera micro-drift"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "high fashion model walks with editorial posture, trousers drape beautifully in motion with realistic folds, studio wind machine, camera tracking"},
+            {"name": "Pose", "duration": 3, "motion_prompt": "editorial model turns three-quarter, looks directly into camera lens with high-fashion intensity, soft focus background, luxury studio lighting"}
         ],
         "tops": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "high fashion portrait, close-up of model's face and elegant silk blouse drape, soft diffused studio light"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walking slowly, silk shirt flowing, wind machine, cinematic camera movement, editorial fashion"},
-            {"name": "Pose", "duration": 3, "motion_prompt": "model turns slowly, cross-armed pose, looking at camera with serene editorial expression"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "high fashion portrait, close-up of model's face and elegant silk blouse drape, soft diffused studio light, camera focus breathing, realistic silk folds"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "model walking slowly, silk shirt flowing in wind, wind machine, cinematic camera movement, editorial fashion film, camera micro-drift"},
+            {"name": "Pose", "duration": 3, "motion_prompt": "editorial model turns slowly, cross-armed pose, looking at camera with serene expression, dramatic key lighting, photorealistic skin textures"}
         ]
     },
     "casual": {
         "dress": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "vlog style, model holding up dress, turning side to side with a warm friendly smile, cozy bedroom setting"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walks happily in sunny garden, dress swaying naturally, handheld camera feel, warm sun flares"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model sits on cafe bench, turns to camera, laughs and waves, bright inviting lifestyle aesthetic"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "vlog style video, model holding up dress, turning side to side with a warm friendly smile, cozy bedroom setting, natural window light, handheld camera feel"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "lifestyle vlog, model walks happily in sunny garden, dress swaying naturally, handheld camera shake, warm sun flares, natural depth blur"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "cozy lifestyle vlog, model sits on cafe bench, turns to camera, laughs and waves, bright inviting aesthetic, handheld camera breathing"}
         ],
         "outerwear": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "cozy lifestyle vlog, model wearing warm cardigan, wraps arms around herself smiling, coffee shop background"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walks down suburban path holding cup of tea, autumn leaves falling, casual friendly energy"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model turns, smiles and points at cardigan texture, warm cozy lighting, lifestyle vlog feel"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "cozy lifestyle vlog, model wearing warm cardigan, wraps arms around herself smiling, coffee shop background, soft golden hour light, handheld camera feel"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "lifestyle vlog, model walks down suburban path, autumn leaves falling, casual friendly energy, natural handheld camera movement, soft depth-of-field"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model turns, smiles and points at cardigan texture, warm cozy lighting, lifestyle vlog aesthetic, camera micro-drift, natural cloth weave"}
         ],
         "pants": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "casual mirror selfie style, model showing comfy jeans fit, tilting hips naturally, warm bedroom light"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walks towards camera in sunny park, smiling, casual approach, natural handheld movement"},
-            {"name": "Pose", "duration": 3, "motion_prompt": "model leans against park bench, turns to camera and waves, happy friendly best-friend vibes"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "casual mirror selfie style video, model showing comfy jeans fit, tilting hips naturally, warm bedroom light, handheld camera shake, cozy atmosphere"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "lifestyle vlog, model walks towards camera in sunny park, smiling, casual approach, natural handheld camera drift, grass and trees bokeh"},
+            {"name": "Pose", "duration": 3, "motion_prompt": "model leans against park bench, turns to camera and waves, happy friendly best-friend vibes, sunny day, handheld camera breathing"}
         ],
         "tops": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "cozy vlog intro, model waves to camera wearing cute casual tee, holds up tea mug, bright cozy cafe"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "model walks casually in cafe, turns around smiling, lifestyle vlog aesthetic, dewy skin glow"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model laughs, waves goodbye to camera, cozy environment, soft golden hour lighting"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "cozy vlog intro, model waves to camera wearing cute casual tee, holds up tea mug, bright cozy cafe, natural window light, handheld camera feel"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "casual model walks in cafe, turns around smiling, lifestyle vlog aesthetic, dewy skin glow, camera micro-drift, warm indoor lighting"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model laughs, waves goodbye to camera, cozy environment, soft golden hour lighting, handheld camera shake, realistic skin texture"}
         ]
     },
     "curvy-chic": {
         "dress": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "curvy fashion model turns slowly in minimalist studio, showing hourglass fit of dress, warm golden lighting"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks confidently towards camera, dress drape emphasizes curves beautifully, slow cinematic push-in"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model strikes confident pose, hand on hip, looks over shoulder with warm gorgeous smile, studio wall"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "curvy fashion model turns slowly in minimalist studio, showing hourglass fit of dress, warm golden lighting, camera focus breathing, soft shadows"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks confidently towards camera, dress drape emphasizes curves with realistic cloth folds, slow cinematic camera push-in, micro-drift"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "curvy model strikes confident pose, hand on hip, looks over shoulder with warm gorgeous smile, studio wall background, cinematic lighting"}
         ],
         "outerwear": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "plus-size model wearing tailored blazer, adjusts front button, confident chic styling studio shot"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks down city street, open coat flows in wind, camera follows her movement with dynamic tracking"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model pauses, looks back over shoulder, shrugs coat slightly, gorgeous smile, soft bokeh background"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "plus-size model wearing tailored blazer, adjusts front button, confident chic styling, studio key light, camera micro-drift, photorealistic skin pores"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks down city street, open coat flows in wind, camera follows her movement with dynamic tracking, subtle camera shake, urban daylight"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model pauses, looks back over shoulder, shrugs coat slightly, gorgeous smile, soft bokeh background, warm sunset light, handheld camera breathing"}
         ],
         "pants": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "curvy model waist-down profile pose, highlighting fit of high-waist jeans, hand on back pocket naturally"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "curvy fashion model struts confidently, showing jeans fit in motion, camera at low angle tracking stride"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model turns 360 degrees showing full jeans fit, finishes with confident hand-on-hip pose, warm smile"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "curvy model waist-down profile pose, highlighting fit of high-waist jeans, hand on back pocket naturally, studio lighting, camera focus breathing"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "curvy fashion model struts confidently, showing jeans fit in motion, camera at low angle tracking stride, handheld camera micro-drift, fabric folds"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model turns 360 degrees showing full jeans fit, finishes with confident hand-on-hip pose, warm smile, studio backdrop, cinematic lighting"}
         ],
         "tops": [
-            {"name": "Intro", "duration": 2, "motion_prompt": "curvy model styling vlog, adjusts neckline of elegant top, smiles confidently, warm studio lighting"},
-            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks in modern studio, top moves naturally with her stride, soft lifestyle camera follow"},
-            {"name": "Outro", "duration": 3, "motion_prompt": "model strikes a confident pose, turns side profile then smiles at camera, chic fashion presentation"}
+            {"name": "Intro", "duration": 2, "motion_prompt": "curvy model styling vlog, adjusts neckline of elegant top, smiles confidently, warm studio lighting, handheld camera feel, photorealistic drape"},
+            {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks in modern studio, top moves naturally with her stride, soft lifestyle camera follow, micro-drift, natural depth blur"},
+            {"name": "Outro", "duration": 3, "motion_prompt": "model strikes a confident pose, turns side profile then smiles at camera, chic fashion presentation, studio sunset lighting, handheld camera shake"}
         ]
     }
 }
@@ -389,6 +391,213 @@ def concat_videos_ffmpeg(video_paths: list, output_path: str) -> bool:
             except:
                 pass
 
+# ─── Audio and Voiceover Helpers ──────────────────────────────────────────────
+
+DEFAULT_BGM_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+
+VOICEOVER_VOICES_ELEVENLABS = {
+    "Aria": "21m00Tcm4TlvDq8ikWAM",  # Rachel (editorial, warm)
+    "Luna": "piTKgcLEGmPEe242Cchg",  # Nicole (streetwear, youthful)
+    "Nova": "z9fAnwMTq79t1maRnPAg",  # Glinda (casual, upbeat)
+    "Sasha": "EXAVITQu4vr4xnSDxMaL", # Bella (curvy-chic, confident)
+}
+
+VOICEOVER_VOICES_EDGETTS = {
+    "Aria": "en-US-AvaNeural",
+    "Luna": "en-US-AnaNeural",
+    "Nova": "en-US-EmmaMultilingualNeural",
+    "Sasha": "en-US-JennyNeural",
+}
+
+def generate_voiceover(text: str, model_name: str, output_path: str) -> bool:
+    print(f"  → Generating voiceover for model '{model_name}'...")
+    
+    # 1. Try ElevenLabs if API key is present
+    elevenlabs_key = os.getenv("ELEVENLABS_API_KEY")
+    if elevenlabs_key:
+        voice_id = VOICEOVER_VOICES_ELEVENLABS.get(model_name, "21m00Tcm4TlvDq8ikWAM")
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": elevenlabs_key
+        }
+        data = {
+            "text": text,
+            "model_id": "eleven_monolingual_v1",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        try:
+            print("    [TTS] Sending request to ElevenLabs API...")
+            resp = requests.post(url, json=data, headers=headers)
+            if resp.status_code == 200:
+                with open(output_path, 'wb') as f:
+                    f.write(resp.content)
+                print(f"    ✓ ElevenLabs voiceover saved to: {output_path}")
+                return True
+            else:
+                print(f"    ⚠ ElevenLabs API returned status code {resp.status_code}: {resp.text}")
+        except Exception as e:
+            print(f"    ⚠ Exception during ElevenLabs TTS generation: {e}")
+            
+    # 2. Fallback to Microsoft Edge TTS (Free Neural)
+    print("    [TTS] Falling back to Microsoft Edge Neural TTS...")
+    voice = VOICEOVER_VOICES_EDGETTS.get(model_name, "en-US-AvaNeural")
+    try:
+        import asyncio
+        import edge_tts
+        
+        async def tts_main():
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(output_path)
+            
+        asyncio.run(tts_main())
+        print(f"    ✓ Edge TTS voiceover saved to: {output_path}")
+        return True
+    except Exception as e:
+        print(f"    ✗ Microsoft Edge TTS generation failed: {e}")
+        return False
+
+def mix_audio(silent_video_path: str, voiceover_path: str, bgm_path: str, output_path: str) -> bool:
+    print(f"  → Overlaying audio onto {silent_video_path}...")
+    try:
+        has_vo = voiceover_path and os.path.exists(voiceover_path)
+        has_bgm = bgm_path and os.path.exists(bgm_path)
+        
+        if has_vo and has_bgm:
+            # Case 1: Both voiceover and looped BGM
+            cmd = [
+                FFMPEG_BIN, "-y",
+                "-i", silent_video_path,
+                "-i", voiceover_path,
+                "-stream_loop", "-1",
+                "-i", bgm_path,
+                "-filter_complex", "[2:a]volume=0.2[bgm];[1:a][bgm]amix=inputs=2:duration=longest[a]",
+                "-map", "0:v:0",
+                "-map", "[a]",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-shortest",
+                output_path
+            ]
+        elif has_bgm:
+            # Case 2: Only BGM
+            cmd = [
+                FFMPEG_BIN, "-y",
+                "-i", silent_video_path,
+                "-stream_loop", "-1",
+                "-i", bgm_path,
+                "-map", "0:v:0",
+                "-map", "1:a:0",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-shortest",
+                output_path
+            ]
+        elif has_vo:
+            # Case 3: Only voiceover
+            cmd = [
+                FFMPEG_BIN, "-y",
+                "-i", silent_video_path,
+                "-i", voiceover_path,
+                "-map", "0:v:0",
+                "-map", "1:a:0",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-shortest",
+                output_path
+            ]
+        else:
+            print("    ✗ No audio sources (BGM or voiceover) available to overlay.")
+            return False
+            
+        print(f"    Running FFmpeg audio mix: {' '.join(cmd)}")
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode == 0:
+            print("  ✓ FFmpeg audio mix completed successfully!")
+            return True
+        else:
+            print(f"  ✗ FFmpeg audio mix failed: {res.stderr.decode()}")
+            return False
+    except Exception as e:
+        print(f"  ✗ Exception during FFmpeg audio mixing: {e}")
+        return False
+
+def assemble_ugc_video(
+    product_id: str,
+    model_name: str,
+    clip_paths: list,
+    success_count: int,
+    scenes: list,
+    bgm_path: str,
+    script: str,
+    final_video_file: str,
+    vton_image_url: str
+) -> tuple:
+    """Stitch clips, generate voiceover, mix audio, and return (video_url, status, error_msg)."""
+    if success_count == 0:
+        print("  ✗ All scene generations failed. Using image as fallback.")
+        return vton_image_url, "partial", "All video scenes failed"
+        
+    is_partial = success_count < len(scenes)
+    if is_partial:
+        print(f"  ⚠ Only {success_count}/{len(scenes)} scenes succeeded. Stitching partial scenes...")
+        
+    temp_silent_file = final_video_file + ".silent.mp4"
+    if concat_videos_ffmpeg(clip_paths, temp_silent_file):
+        print(f"  ✓ Stitched video created at: {temp_silent_file}")
+        
+        # Clean up temporary single-shot clips
+        for cp in clip_paths:
+            try:
+                os.remove(cp)
+            except:
+                pass
+                
+        # Generate Voiceover
+        voiceover_file = f"output_assets/temp_{product_id}_{model_name}_voiceover.mp3"
+        voiceover_ok = generate_voiceover(script, model_name, voiceover_file)
+        
+        # Mix voiceover + BGM
+        has_mixed_audio = False
+        bgm_to_use = bgm_path if (bgm_path and os.path.exists(bgm_path)) else None
+        vo_to_use = voiceover_file if (voiceover_ok and os.path.exists(voiceover_file)) else None
+        
+        if vo_to_use or bgm_to_use:
+            if mix_audio(temp_silent_file, vo_to_use, bgm_to_use, final_video_file):
+                has_mixed_audio = True
+                
+        # Clean up voiceover temp file
+        if os.path.exists(voiceover_file):
+            try:
+                os.remove(voiceover_file)
+            except:
+                pass
+                
+        if not has_mixed_audio:
+            print("  ⚠ Audio overlay failed. Using silent video as fallback.")
+            try:
+                if os.path.exists(final_video_file):
+                    os.remove(final_video_file)
+                os.rename(temp_silent_file, final_video_file)
+            except Exception as e:
+                print(f"  ✗ Failed to rename silent fallback: {e}")
+        else:
+            # Clean up silent temp file
+            try:
+                os.remove(temp_silent_file)
+            except:
+                pass
+                
+        return final_video_file, "partial" if is_partial else "success", None
+    else:
+        print("  ✗ FFmpeg stitching failed. Falling back to the first clip.")
+        fallback_url = clip_paths[0] if clip_paths else vton_image_url
+        return fallback_url, "partial", "FFmpeg stitching failed"
+
 # ─── Prompt Builder ─────────────────────────────────────────────────────────────
 
 def build_fashion_prompt(model_data: dict, product_name: str, product_description: str) -> str:
@@ -460,15 +669,80 @@ def build_storyboard_panels(product_name: str, model_name: str, duration: int = 
     ]
 
 
-def generate_video_script(product_name: str, model_name: str) -> str:
-    """Generate a short voiceover/caption script for the video."""
-    scripts = {
-        "Aria": f"Obsessed with this {product_name}. The fit is absolutely flawless. Tap the link to shop my exact look.",
-        "Luna": f"Streetwear essential unlocked 🔥 This {product_name} is everything. Check the link to cop this fit.",
-        "Nova": f"Hey! I just found the cutest {product_name} ever. It's so good, I had to share. Link in bio! 💕",
-        "Sasha": f"Curvy-chic style check ✨ This {product_name} hugs every single curve perfectly. Link to shop is in my bio!",
+def generate_video_script(product_name: str, model_name: str, style_dir: str = "casual", category: str = "tops") -> str:
+    """
+    Generate an authentic, high-converting short UGC script based on the Reddit user framework:
+      1. Hook (bold opener specific to persona)
+      2. Pain Point / Problem (relatable struggle specific to product type/style)
+      3. Solution & CTA (natural pivot with no marketing lingo)
+    """
+    # 1. Hooks based on persona/style
+    hooks = {
+        "editorial": [
+            f"I thought this {product_name} was just hype, but the drape is gorgeous.",
+            f"This {product_name} is the definition of quiet luxury.",
+            f"If you've been looking for that perfect editorial piece, this is it."
+        ],
+        "streetwear": [
+            f"Streetwear check: this new {product_name} is literally everything.",
+            f"If you've tried finding a styled {product_name} that actually fits, watch this.",
+            f"I saw this {product_name} trending and had to give it a shot."
+        ],
+        "casual": [
+            f"Okay, I am genuinely obsessed with this {product_name}.",
+            f"I just found the absolute cutest {product_name} ever.",
+            f"If you need a sign to upgrade your daily style, here it is."
+        ],
+        "curvy-chic": [
+            f"Curvy style check! Finding a {product_name} that actually fits is so hard, but...",
+            f"This is the most flattering {product_name} I have ever styled, hands down.",
+            f"Confidence level 100 in this fit. Look at the silhouette."
+        ]
     }
-    return scripts.get(model_name, f"I'm loving this {product_name}. Shop it now through the link!")
+    
+    # 2. Pain points/Problems based on style and category
+    problems = {
+        "editorial": [
+            "Usually high-end tailoring is so stiff, but this flows naturally.",
+            "Tailored pieces are usually either way too expensive or feel cheap, but this fabric...",
+            "Most brand pieces gap or don't hold structure, but this tailor-made feel..."
+        ],
+        "streetwear": [
+            "Usually streetwear fits get stiff or fade after one wash, but this quality...",
+            "Most oversized styles look totally boxy, but this drape is perfect.",
+            "It's super hard to find cozy fits that still look elevated, but..."
+        ],
+        "casual": [
+            "I've tried so many daily pieces that lose their softness, but this cotton...",
+            "Normally, casual stuff looks super plain, but the design details here...",
+            "I wanted something soft but still stylish, and this hits the spot."
+        ],
+        "curvy-chic": [
+            "Usually clothing either gaps at the waist or pinches my hips, but this...",
+            "Most brands do not design for curvy bodies, but this hugs in all the right places.",
+            "It gives you that comfortable hold without feeling restrictive at all."
+        ]
+    }
+
+    # 3. Solutions / CTAs
+    ctas = [
+        f"It's not just a basic—it's a total wardrobe upgrade. Comment 'FIT' and I'll DM you the link!",
+        f"The fabric and quality are unmatched. Just comment 'LINK' to get it sent straight to your DMs.",
+        f"I seriously wish I had found this earlier. Comment 'STYLE' and I'll DM you the link to shop!"
+    ]
+    
+    # Choose elements
+    style_hooks = hooks.get(style_dir, hooks["casual"])
+    style_problems = problems.get(style_dir, problems["casual"])
+    
+    hook = random.choice(style_hooks)
+    problem = random.choice(style_problems)
+    cta = random.choice(ctas)
+    
+    # Combine into a natural sounding, punchy UGC script
+    script = f"{hook} {problem} {cta}"
+    return script
+
 
 
 # ─── EachLabs VTON Integration ──────────────────────────────────────────────────
@@ -536,6 +810,27 @@ def vton_eachlabs(product_image_url: str, model_data: dict) -> str:
     return ""
 
 
+def image_to_image_eachlabs(image_url: str, prompt: str, style_dir: str) -> str:
+    """Generate a character-consistent storyboard image using EachLabs Google Nano Banana 2 Edit."""
+    print(f"  → Storyboard keyframe image generation via EachLabs ({EACHLABS_IMG2IMG_MODEL})...")
+    
+    result = _eachlabs_predict(EACHLABS_IMG2IMG_MODEL, {
+        "prompt": prompt,
+        "image_urls": [image_url],
+        "aspect_ratio": "9:16",
+        "resolution": "1K",
+        "thinking_level": "high",
+    })
+
+    output = result.get("output", {})
+    if isinstance(output, dict):
+        return output.get("image_url", "") or output.get("url", "")
+    elif isinstance(output, str):
+        return output
+    return ""
+
+
+
 def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5) -> str:
     """Generate runway video using EachLabs Pixverse."""
     print(f"  → Video generation via EachLabs ({EACHLABS_VIDEO_MODEL})...")
@@ -591,6 +886,8 @@ def run_ugc_pipeline(
     product_image_url: str,
     product_type: str,
     duration: int = 5,
+    bgm_url: str = DEFAULT_BGM_URL,
+    model_id_filter: str = None,
 ) -> list:
     """
     Full UGC video generation pipeline.
@@ -607,7 +904,7 @@ def run_ugc_pipeline(
     if not has_eachlabs and not has_higgsfield:
         print("[WARN] No API credentials set. Returning mock data.")
         print("[WARN] Set EACHLABS_API_KEY for VTON or HF_KEY for Higgsfield.")
-        return _mock_outputs(product_id, product_name)
+        return _mock_outputs(product_id, product_name, model_id_filter)
 
     # Hybrid configuration logic
     img_backend = "eachlabs" if has_eachlabs else "higgsfield"
@@ -619,6 +916,31 @@ def run_ugc_pipeline(
     print(f"  Product: {product_name}")
     print(f"{'='*60}")
 
+    # Ensure output directory exists
+    os.makedirs("output_assets", exist_ok=True)
+
+    # Download BGM if provided
+    bgm_path = None
+    if bgm_url:
+        bgm_filename = "background_music.mp3"
+        if bgm_url != DEFAULT_BGM_URL:
+            # Generate a cached filename based on custom URL
+            import urllib.parse
+            import hashlib
+            parsed = urllib.parse.urlparse(bgm_url)
+            path_nodes = [node for node in parsed.path.split('/') if node]
+            if path_nodes:
+                bgm_filename = f"bgm_{path_nodes[-1]}"
+            else:
+                bgm_filename = f"bgm_{hashlib.md5(bgm_url.encode()).hexdigest()}.mp3"
+        
+        bgm_path = os.path.join("output_assets", bgm_filename)
+        if not os.path.exists(bgm_path):
+            print(f"  → Downloading background music from {bgm_url[:60]}...")
+            if not download_file(bgm_url, bgm_path):
+                print("  ⚠ Failed to download background music. final videos will not have background music.")
+                bgm_path = None
+
     # Detect product category
     category = detect_product_category(product_name, product_description)
     print(f"  Detected Category: {category.upper()}")
@@ -626,6 +948,8 @@ def run_ugc_pipeline(
     final_outputs = []
 
     for model_id, model_data in AI_MODELS.items():
+        if model_id_filter and model_id != model_id_filter:
+            continue
         model_name = model_data["name"]
         style_dir = model_data["style_direction"]
         print(f"\n{'─'*60}")
@@ -635,10 +959,10 @@ def run_ugc_pipeline(
         try:
             # ── Step 1: Generate model image (VTON or text-to-image) ──
             if img_backend == "eachlabs":
-                print(f"[1/4] Virtual Try-On — putting real product on {model_name}...")
+                print(f"[1/5] Virtual Try-On — putting real product on {model_name}...")
                 vton_image_url = vton_eachlabs(product_image_url, model_data)
             else:
-                print(f"[1/4] Fashion photography generation for {model_name}...")
+                print(f"[1/5] Fashion photography generation for {model_name}...")
                 fashion_prompt = build_fashion_prompt(model_data, product_name, product_description)
                 vton_image_url = image_higgsfield(fashion_prompt)
 
@@ -652,17 +976,66 @@ def run_ugc_pipeline(
             print(f"  ✓ Image: {vton_image_url[:80]}...")
 
             # ── Step 2: Resolve dynamic storyboard scenes ──
-            scenes = get_storyboard_scenes(style_dir, category)
-            print(f"[2/4] Storyboard planning ({len(scenes)} scenes)...")
+            raw_scenes = get_storyboard_scenes(style_dir, category)
+            scenes = []
+            for sc in raw_scenes:
+                motion_prompt = sc["motion_prompt"]
+                # Dynamically replace generic clothing words with the actual product name
+                # to prevent contradictions that trigger Google's safety filters / empty responses
+                motion_prompt = motion_prompt.replace("silk blouse", product_name)
+                motion_prompt = motion_prompt.replace("silk shirt", product_name)
+                motion_prompt = motion_prompt.replace("graphic tee", product_name)
+                motion_prompt = motion_prompt.replace("casual tee", product_name)
+                motion_prompt = motion_prompt.replace("silk", "fabric")
+                
+                # Prevent physical contradictions for fitted items (like tank tops or tees)
+                if any(x in product_name.lower() or x in product_description.lower() for x in ["tank top", "t-shirt", "tee", "bodysuit", "fitted"]):
+                    motion_prompt = motion_prompt.replace("flowing in wind", "moving naturally")
+                    motion_prompt = motion_prompt.replace("flowing in the wind", "moving naturally")
+                    motion_prompt = motion_prompt.replace("swaying naturally", "fitting perfectly")
+                
+                scenes.append({
+                    "name": sc["name"],
+                    "duration": sc["duration"],
+                    "motion_prompt": motion_prompt
+                })
+            
+            print(f"[2/5] Storyboard planning ({len(scenes)} scenes)...")
             for idx, sc in enumerate(scenes):
                 print(f"    Scene {idx+1} ({sc['name']}): {sc['motion_prompt'][:65]}... ({sc['duration']}s)")
 
-            # ── Step 3: Script generation ──
-            script = generate_video_script(product_name, model_name)
-            print(f"[3/4] Script: \"{script[:60]}...\"")
+            # ── Step 3: Generate storyboard keyframe images ──
+            storyboard_images = []
+            print(f"[3/5] Generating consistent storyboard keyframe images...")
+            for idx, sc in enumerate(scenes):
+                print(f"  → Generating keyframe {idx+1}/{len(scenes)} ({sc['name']})...")
+                # Build an edit instruction prompt optimized for Google's Nano Banana 2 Edit
+                keyframe_prompt = (
+                    f"Modify the pose and scene environment to match: {sc['motion_prompt']}. "
+                    f"Keep the model's identity, face, hair, and the clothing/attire (colors, patterns, style) "
+                    f"exactly the same as the original image. Retain high-end professional fashion photography quality."
+                )
+                
+                scene_img_url = None
+                if img_backend == "eachlabs":
+                    try:
+                        scene_img_url = image_to_image_eachlabs(vton_image_url, keyframe_prompt, style_dir)
+                    except Exception as e:
+                        print(f"    ⚠ Storyboard image generation failed for scene {idx+1}: {e}")
+                
+                if not scene_img_url:
+                    print(f"    → Using base VTON image as fallback for scene {idx+1}")
+                    scene_img_url = vton_image_url
+                
+                print(f"    ✓ Keyframe {idx+1} image: {scene_img_url[:80]}...")
+                storyboard_images.append(scene_img_url)
 
-            # ── Step 4: Multi-scene Video generation & stitching ──
-            print(f"[4/4] Generating and stitching scenes...")
+            # ── Step 4: Script generation ──
+            script = generate_video_script(product_name, model_name, style_dir, category)
+            print(f"[4/5] Script: \"{script[:60]}...\"")
+
+            # ── Step 5: Multi-scene Video generation & stitching ──
+            print(f"[5/5] Generating and stitching scenes...")
             clip_paths = []
             
             # Ensure output directory exists
@@ -673,12 +1046,13 @@ def run_ugc_pipeline(
                 print(f"  → Animating Scene {idx+1}/{len(scenes)} ({sc['name']})...")
                 scene_prompt = sc["motion_prompt"]
                 scene_dur = sc["duration"]
+                scene_base_img = storyboard_images[idx]
                 
                 # Request video generation from the backend
                 if video_backend == "eachlabs":
-                    scene_video_url = video_eachlabs(vton_image_url, scene_prompt, scene_dur)
+                    scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur)
                 else:
-                    scene_video_url = video_higgsfield(vton_image_url, scene_prompt, scene_dur)
+                    scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
                 
                 if scene_video_url:
                     print(f"    ✓ Scene {idx+1} video URL: {scene_video_url[:80]}...")
@@ -690,91 +1064,35 @@ def run_ugc_pipeline(
                 else:
                     print(f"    ✗ Scene {idx+1} generation returned no URL")
             
-            # Stitch the videos together using FFmpeg
+
+            # Assemble the final video (stitch, voiceover, and bgm mix)
             final_video_file = f"output_assets/prod_{product_id}_{model_name}_final.mp4"
+            video_url, status, error = assemble_ugc_video(
+                product_id=product_id,
+                model_name=model_name,
+                clip_paths=clip_paths,
+                success_count=success_count,
+                scenes=scenes,
+                bgm_path=bgm_path,
+                script=script,
+                final_video_file=final_video_file,
+                vton_image_url=vton_image_url
+            )
             
-            if success_count == len(scenes):
-                # All scenes generated and downloaded successfully, stitch them!
-                if concat_videos_ffmpeg(clip_paths, final_video_file):
-                    print(f"  ✓ Multi-scene stitched video created at: {final_video_file}")
-                    
-                    # Clean up temporary single-shot clips
-                    for cp in clip_paths:
-                        try:
-                            os.remove(cp)
-                        except:
-                            pass
-                    
-                    final_outputs.append({
-                        "model_id": model_id,
-                        "model_name": model_name,
-                        "style": style_dir,
-                        "vton_image": vton_image_url,
-                        "script": script,
-                        "storyboard_panels": len(scenes),
-                        "final_video_url": final_video_file,
-                        "backend": combined_backend,
-                        "status": "success",
-                    })
-                else:
-                    # Stitch failed
-                    print("  ✗ FFmpeg stitching failed. Falling back to the first clip.")
-                    final_outputs.append({
-                        "model_id": model_id,
-                        "model_name": model_name,
-                        "style": style_dir,
-                        "vton_image": vton_image_url,
-                        "script": script,
-                        "final_video_url": clip_paths[0] if clip_paths else vton_image_url,
-                        "backend": combined_backend,
-                        "status": "partial",
-                        "error": "FFmpeg stitching failed"
-                    })
-            elif success_count > 0:
-                # Some scenes succeeded but not all. Stitch what we have!
-                print(f"  ⚠ Only {success_count}/{len(scenes)} scenes succeeded. Stitching partial scenes...")
-                if concat_videos_ffmpeg(clip_paths, final_video_file):
-                    # Clean up temp files
-                    for cp in clip_paths:
-                        try:
-                            os.remove(cp)
-                        except:
-                            pass
-                    final_outputs.append({
-                        "model_id": model_id,
-                        "model_name": model_name,
-                        "style": style_dir,
-                        "vton_image": vton_image_url,
-                        "script": script,
-                        "final_video_url": final_video_file,
-                        "backend": combined_backend,
-                        "status": "partial",
-                    })
-                else:
-                    final_outputs.append({
-                        "model_id": model_id,
-                        "model_name": model_name,
-                        "style": style_dir,
-                        "vton_image": vton_image_url,
-                        "script": script,
-                        "final_video_url": clip_paths[0] if clip_paths else vton_image_url,
-                        "backend": combined_backend,
-                        "status": "partial",
-                    })
-            else:
-                # No scenes succeeded, use VTON image as fallback
-                print("  ✗ All scene generations failed. Using image as fallback.")
-                final_outputs.append({
-                    "model_id": model_id,
-                    "model_name": model_name,
-                    "style": style_dir,
-                    "vton_image": vton_image_url,
-                    "script": script,
-                    "final_video_url": vton_image_url,
-                    "backend": combined_backend,
-                    "status": "partial",
-                    "error": "All video scenes failed"
-                })
+            final_outputs.append({
+                "model_id": model_id,
+                "model_name": model_name,
+                "style": style_dir,
+                "vton_image": vton_image_url,
+                "storyboard_images": storyboard_images,
+                "script": script,
+                "storyboard_panels": len(scenes),
+                "final_video_url": video_url,
+                "backend": combined_backend,
+                "status": status,
+                **({"error": error} if error else {})
+            })
+
 
         except Exception as e:
             print(f"  ✗ Error for {model_name}: {e}")
@@ -786,17 +1104,22 @@ def run_ugc_pipeline(
 
     if not final_outputs or all(o.get("status") == "failed" for o in final_outputs):
         print("\n[FALLBACK] All models failed. Returning mock data.")
-        return _mock_outputs(product_id, product_name)
+        return _mock_outputs(product_id, product_name, model_id_filter)
 
     return final_outputs
 
 
-def _mock_outputs(product_id: str, product_name: str) -> list:
+def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = None) -> list:
     """Fallback mock data when APIs are unavailable."""
-    return [
+    mocks = [
         {
             "model_id": "model_1", "model_name": "Aria", "style": "editorial",
             "vton_image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400",
+            "storyboard_images": [
+                "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400",
+                "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400",
+                "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400"
+            ],
             "script": f"Obsessed with this {product_name}. The fit is absolutely flawless.",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
             "backend": "mock", "status": "mock",
@@ -804,6 +1127,11 @@ def _mock_outputs(product_id: str, product_name: str) -> list:
         {
             "model_id": "model_2", "model_name": "Luna", "style": "streetwear",
             "vton_image": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400",
+            "storyboard_images": [
+                "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400",
+                "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=400",
+                "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400"
+            ],
             "script": f"Streetwear essential unlocked 🔥 This {product_name} is everything.",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
             "backend": "mock", "status": "mock",
@@ -811,11 +1139,19 @@ def _mock_outputs(product_id: str, product_name: str) -> list:
         {
             "model_id": "model_3", "model_name": "Nova", "style": "casual",
             "vton_image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400",
+            "storyboard_images": [
+                "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400",
+                "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=400",
+                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400"
+            ],
             "script": f"Hey! I just found the cutest {product_name} ever. Link in bio! 💕",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
             "backend": "mock", "status": "mock",
         },
     ]
+    if model_id_filter:
+        mocks = [m for m in mocks if m["model_id"] == model_id_filter]
+    return mocks
 
 
 if __name__ == "__main__":
@@ -826,6 +1162,8 @@ if __name__ == "__main__":
     parser.add_argument("--product_image_url", type=str, required=True)
     parser.add_argument("--product_type", type=str, default="fashion")
     parser.add_argument("--duration", type=int, default=5)
+    parser.add_argument("--bgm_url", type=str, default=DEFAULT_BGM_URL)
+    parser.add_argument("--model_id", type=str, default=None)
 
     args = parser.parse_args()
     outputs = run_ugc_pipeline(
@@ -835,5 +1173,8 @@ if __name__ == "__main__":
         product_image_url=args.product_image_url,
         product_type=args.product_type,
         duration=args.duration,
+        bgm_url=args.bgm_url,
+        model_id_filter=args.model_id,
     )
+
     print(json.dumps(outputs))

@@ -49,16 +49,14 @@ public class UGCEngineService {
             StringBuilder output = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                output.append(line);
+                output.append(line).append("\n");
             }
             
             int exitCode = process.waitFor();
             
             if (exitCode == 0) {
                 String jsonOutput = output.toString();
-                // The python script might output logs before the JSON if there were any print statements not removed.
-                // It's safer to extract JSON array from the output
-                int jsonStart = jsonOutput.indexOf("[");
+                int jsonStart = jsonOutput.indexOf("[{\"");
                 int jsonEnd = jsonOutput.lastIndexOf("]");
                 
                 if (jsonStart != -1 && jsonEnd != -1) {
@@ -71,11 +69,15 @@ public class UGCEngineService {
                         video.setAffiliateLink(affiliateLink);
                         video.setModelName(asset.get("model_name"));
                         video.setItemName(productName);
+                        video.setScript(asset.get("script"));
                         video.setCreatedAt(java.time.LocalDateTime.now());
                         
                         UGCVideo savedVideo = ugcVideoRepository.save(video);
                         socialPublisherService.publishVideoToSocial(savedVideo);
                     }
+                } else {
+                    System.err.println("UGC Engine completed but no JSON output found starting with [{\".");
+                    System.err.println("Full Output: " + jsonOutput);
                 }
             } else {
                 System.err.println("UGC Engine failed with exit code: " + exitCode);

@@ -49,8 +49,14 @@ public class SocialResponderService {
         // Find the most relevant product to link
         String productLink = findBestProductLink(commentText);
 
-        // Generate AI reply
-        String reply = replyEngine.generateReply(commentText, productLink);
+        // Generate AI reply (Instagram gets a DM invitation reply, others get public link)
+        String reply;
+        if ("instagram".equalsIgnoreCase(platform)) {
+            reply = replyEngine.generateInstagramPublicReply();
+        } else {
+            reply = replyEngine.generateReply(commentText, productLink);
+        }
+
 
         SocialComment comment = SocialComment.builder()
                 .platform(platform)
@@ -117,7 +123,12 @@ public class SocialResponderService {
         switch (platform) {
             case "instagram":
                 success = platformClient.replyToInstagramComment(comment.getCommentId(), comment.getReplyText());
+                if (success) {
+                    String dmText = String.format("Hey! Here is the direct link to the item: %s", comment.getProductLink());
+                    platformClient.sendPrivateDMToInstagramComment(comment.getCommentId(), dmText);
+                }
                 break;
+
             case "twitter":
             case "x":
                 success = platformClient.replyToTwitterComment(comment.getCommentId(), comment.getUsername(), comment.getReplyText());
