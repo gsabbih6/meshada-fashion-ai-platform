@@ -50,7 +50,7 @@ except ImportError:
 
 # Higgsfield models
 HF_IMAGE_MODEL = "higgsfield-ai/soul/standard"
-HF_VIDEO_MODEL = "higgsfield-ai/dop/standard"
+HF_VIDEO_MODEL = "veo3_1"
 
 # EachLabs models
 EACHLABS_VTON_MODEL = "kling-v1-5-kolors-virtual-try-on"
@@ -864,17 +864,35 @@ def image_higgsfield(prompt: str) -> str:
 
 
 def video_higgsfield(image_url: str, motion_prompt: str, duration: int = 5) -> str:
-    """Generate video using Higgsfield DoP."""
-    print(f"  → Video generation via Higgsfield DoP...")
+    """Generate video using Higgsfield DoP/Veo3."""
+    print(f"  → Video generation via Higgsfield (model: {HF_VIDEO_MODEL})...")
     result = higgsfield_client.subscribe(
         HF_VIDEO_MODEL,
-        arguments={"image_url": image_url, "prompt": motion_prompt, "duration": duration},
+        arguments={
+            "image": image_url,
+            "image_url": image_url,
+            "prompt": motion_prompt,
+            "duration": duration
+        },
     )
     video = result.get("video", {})
-    if video and video.get("url"):
+    if isinstance(video, dict) and video.get("url"):
         return video["url"]
+    output = result.get("output", {})
+    if isinstance(output, dict):
+        url = output.get("video_url") or output.get("url")
+        if url:
+            return url
+    elif isinstance(output, str) and output.startswith("http"):
+        return output
     images = result.get("images", [])
-    return images[0].get("url", "") if images else ""
+    if images and isinstance(images, list):
+        first_img = images[0]
+        if isinstance(first_img, dict) and first_img.get("url"):
+            return first_img["url"]
+        elif isinstance(first_img, str) and first_img.startswith("http"):
+            return first_img
+    return ""
 
 
 # ─── Main Pipeline ──────────────────────────────────────────────────────────────
