@@ -52,8 +52,29 @@ public class UGCDataSeeder implements CommandLineRunner {
                     .published(true)
                     .build();
 
+            UGCVideo placeholder1 = UGCVideo.builder()
+                    .url("https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800")
+                    .affiliateLink("https://meshada.com/ref/placeholder1")
+                    .itemName("Red Dress")
+                    .published(false)
+                    .build();
 
-            videoRepository.saveAll(List.of(video1, video2, video3));
+            UGCVideo placeholder2 = UGCVideo.builder()
+                    .url("https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800")
+                    .affiliateLink("https://meshada.com/ref/placeholder2")
+                    .itemName("Leather Jacket")
+                    .published(false)
+                    .build();
+
+            UGCVideo placeholder3 = UGCVideo.builder()
+                    .url("https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800")
+                    .affiliateLink("https://meshada.com/ref/placeholder3")
+                    .itemName("Cotton T-Shirt")
+                    .published(false)
+                    .build();
+
+
+            videoRepository.saveAll(List.of(video1, video2, video3, placeholder1, placeholder2, placeholder3));
             System.out.println("Seeding complete.");
         }
     }
