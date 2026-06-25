@@ -28,10 +28,10 @@ public class UGCAutoSchedulerService {
     }
 
     /**
-     * Scheduled daily task to post a video.
-     * Default: Daily at 9:00 AM.
+     * Scheduled task to post videos twice per day.
+     * Default: 11:00 AM and 7:00 PM (optimal engagement intervals).
      */
-    @Scheduled(cron = "${meshada.ugc.scheduler.cron:0 0 9 * * *}")
+    @Scheduled(cron = "${meshada.ugc.scheduler.cron:0 0 11,19 * * *}")
     public void runDailyUGCPost() {
         log.info("[UGC Scheduler] Starting scheduled daily UGC generation and posting task...");
 
