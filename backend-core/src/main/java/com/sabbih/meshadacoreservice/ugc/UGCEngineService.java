@@ -70,6 +70,7 @@ public class UGCEngineService {
                         video.setModelName(asset.get("model_name"));
                         video.setItemName(productName);
                         video.setScript(asset.get("script"));
+                        video.setVtonImageUrl(asset.get("vton_image"));
                         video.setCreatedAt(java.time.LocalDateTime.now());
                         
                         UGCVideo savedVideo = ugcVideoRepository.save(video);

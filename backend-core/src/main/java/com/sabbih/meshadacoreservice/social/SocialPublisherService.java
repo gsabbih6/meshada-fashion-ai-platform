@@ -29,6 +29,12 @@ public class SocialPublisherService {
     @Value("${meshada.social.tiktok.accessToken:}")
     private String tiktokAccessToken;
 
+    @Value("${meshada.social.pinterest.accessToken:}")
+    private String pinterestAccessToken;
+
+    @Value("${meshada.social.pinterest.boardId:}")
+    private String pinterestBoardId;
+
     public SocialPublisherService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.build();
     }
@@ -64,6 +70,13 @@ public class SocialPublisherService {
             publishToTikTok(video.getUrl(), caption);
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to TikTok: {}", e.getMessage());
+        }
+
+        // 4. Post to Pinterest
+        try {
+            publishToPinterest(video.getUrl(), video.getItemName(), caption, video.getAffiliateLink(), video.getVtonImageUrl());
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
         }
     }
 
@@ -243,6 +256,56 @@ public class SocialPublisherService {
             log.info("[TikTok Publisher] TikTok video upload triggered successfully.");
         } else {
             log.error("[TikTok Publisher] Failed to upload TikTok video: {}", response);
+        }
+    }
+
+    /**
+     * Publish Pin on Pinterest.
+     * Pinterest API v5: POST https://api.pinterest.com/v5/pins
+     */
+    private void publishToPinterest(String mediaUrl, String title, String description, String link, String coverImageUrl) {
+        if (pinterestAccessToken == null || pinterestAccessToken.isEmpty() ||
+                pinterestBoardId == null || pinterestBoardId.isEmpty()) {
+            log.warn("[Pinterest Publisher] Access Token or Board ID not configured. Pinterest publishing skipped.");
+            return;
+        }
+
+        log.info("[Pinterest Publisher] Creating Pin on board: {}", pinterestBoardId);
+        String url = "https://api.pinterest.com/v5/pins";
+
+        // Since Pinterest requires direct video file binary upload to S3 for video Pins (which is highly complex asynchronously),
+        // we publish a high-quality visual Image Pin showcasing the virtual try-on model wearing the apparel.
+        // This links directly to the affiliate shop URL, which is the most standard Pinterest affiliate flow.
+        Map<String, Object> mediaSource = Map.of(
+                "source_type", "image_url",
+                "url", coverImageUrl != null && !coverImageUrl.isEmpty() ? coverImageUrl : mediaUrl
+        );
+
+        Map<String, Object> requestBody = Map.of(
+                "board_id", pinterestBoardId,
+                "title", title != null ? title : "Styled by Meshada",
+                "description", description,
+                "link", link,
+                "media_source", mediaSource
+        );
+
+        try {
+            Map response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + pinterestAccessToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Pinterest Publisher] Pin created successfully! Pin ID: {}", response.get("id"));
+            } else {
+                log.error("[Pinterest Publisher] Failed to create Pin: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("[Pinterest Publisher] Failed to create Pin: {}", e.getMessage(), e);
         }
     }
 }

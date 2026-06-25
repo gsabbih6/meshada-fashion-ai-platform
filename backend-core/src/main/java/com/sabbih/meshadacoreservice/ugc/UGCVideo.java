@@ -28,6 +28,7 @@ public class UGCVideo {
     private String affiliateLink;
     private String modelName;
     private String itemName;
+    private String vtonImageUrl;
     
     @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String script;

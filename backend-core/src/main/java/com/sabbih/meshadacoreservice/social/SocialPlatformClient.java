@@ -191,4 +191,12 @@ public class SocialPlatformClient {
             return false;
         }
     }
+
+    /**
+     * Pinterest does not support programmatically replying to comments on Pins via API v5.
+     */
+    public boolean replyToPinterestComment(String commentId, String message) {
+        log.error("[Pinterest Client] Pinterest API v5 does not support replying to Pin comments programmatically.");
+        return false;
+    }
 }

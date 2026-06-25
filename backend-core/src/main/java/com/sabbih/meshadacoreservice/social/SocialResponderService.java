@@ -136,6 +136,9 @@ public class SocialResponderService {
             case "tiktok":
                 success = platformClient.replyToTikTokComment(comment.getCommentId(), comment.getReplyText());
                 break;
+            case "pinterest":
+                platformClient.replyToPinterestComment(comment.getCommentId(), comment.getReplyText());
+                throw new UnsupportedOperationException("Pinterest comment replies are not supported by the Pinterest API v5.");
             default:
                 log.warn("Unknown social platform: {}. Reply logged: {}", comment.getPlatform(), comment.getReplyText());
                 break;

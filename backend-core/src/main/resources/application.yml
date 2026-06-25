@@ -71,6 +71,9 @@ meshada:
       clientKey: ${TIKTOK_CLIENT_KEY:}
       clientSecret: ${TIKTOK_CLIENT_SECRET:}
       accessToken: ${TIKTOK_ACCESS_TOKEN:}
+    pinterest:
+      accessToken: ${PINTEREST_ACCESS_TOKEN:}
+      boardId: ${PINTEREST_BOARD_ID:}
   constants:
     kafka:
       signup_topic: SIGNED_UP
