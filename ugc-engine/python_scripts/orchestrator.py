@@ -50,7 +50,7 @@ except ImportError:
 
 # Higgsfield models
 HF_IMAGE_MODEL = "higgsfield-ai/soul/standard"
-HF_VIDEO_MODEL = "veo3_1"
+HF_VIDEO_MODEL = "higgsfield-ai/dop/standard"
 
 # EachLabs models
 EACHLABS_VTON_MODEL = "kling-v1-5-kolors-virtual-try-on"
