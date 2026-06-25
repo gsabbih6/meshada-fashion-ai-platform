@@ -61,23 +61,23 @@ public class UGCEngineService {
                 
                 if (jsonStart != -1 && jsonEnd != -1) {
                     String jsonArrayStr = jsonOutput.substring(jsonStart, jsonEnd + 1);
-                    List<Map<String, String>> generatedAssets = objectMapper.readValue(jsonArrayStr, new TypeReference<List<Map<String, String>>>(){});
+                    List<Map<String, Object>> generatedAssets = objectMapper.readValue(jsonArrayStr, new TypeReference<List<Map<String, Object>>>(){});
                     
                     boolean created = false;
-                    for (Map<String, String> asset : generatedAssets) {
-                        String backend = asset.get("backend");
+                    for (Map<String, Object> asset : generatedAssets) {
+                        String backend = (String) asset.get("backend");
                         if ("mock".equalsIgnoreCase(backend)) {
                             System.err.println("[UGC Engine] Python script returned mock backend. Treating as credit exhaustion fallback.");
                             return false;
                         }
-
+ 
                         UGCVideo video = new UGCVideo();
-                        video.setUrl(asset.get("final_video_url"));
+                        video.setUrl((String) asset.get("final_video_url"));
                         video.setAffiliateLink(affiliateLink);
-                        video.setModelName(asset.get("model_name"));
+                        video.setModelName((String) asset.get("model_name"));
                         video.setItemName(productName);
-                        video.setScript(asset.get("script"));
-                        video.setVtonImageUrl(asset.get("vton_image"));
+                        video.setScript((String) asset.get("script"));
+                        video.setVtonImageUrl((String) asset.get("vton_image"));
                         video.setCreatedAt(java.time.LocalDateTime.now());
                         
                         UGCVideo savedVideo = ugcVideoRepository.save(video);
