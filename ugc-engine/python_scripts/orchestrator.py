@@ -936,7 +936,17 @@ def run_ugc_pipeline(
 
     # Ensure output directory exists
     os.makedirs("output_assets", exist_ok=True)
-
+ 
+    cache_path = os.path.join("output_assets", f"cache_{product_id}.json")
+    cache_data = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                cache_data = json.load(f)
+            print(f"  → Loaded cached VTON and storyboard image assets from: {cache_path}")
+        except Exception as e:
+            print(f"  → Warning: Could not read cache file: {e}")
+ 
     # Download BGM if provided
     bgm_path = None
     if bgm_url:
@@ -958,13 +968,13 @@ def run_ugc_pipeline(
             if not download_file(bgm_url, bgm_path):
                 print("  ⚠ Failed to download background music. final videos will not have background music.")
                 bgm_path = None
-
+ 
     # Detect product category
     category = detect_product_category(product_name, product_description)
     print(f"  Detected Category: {category.upper()}")
-
+ 
     final_outputs = []
-
+ 
     for model_id, model_data in AI_MODELS.items():
         if model_id_filter and model_id != model_id_filter:
             continue
@@ -973,17 +983,24 @@ def run_ugc_pipeline(
         print(f"\n{'─'*60}")
         print(f"  Persona: {model_name} ({style_dir})")
         print(f"{'─'*60}")
-
+ 
+        model_cache = cache_data.get(model_id, {})
+        cached_vton = model_cache.get("vton_image")
+        cached_storyboard = model_cache.get("storyboard_images", [])
+ 
         try:
             # ── Step 1: Generate model image (VTON or text-to-image) ──
-            if img_backend == "eachlabs":
+            if cached_vton:
+                print(f"[1/5] Reusing cached Virtual Try-On image...")
+                vton_image_url = cached_vton
+            elif img_backend == "eachlabs":
                 print(f"[1/5] Virtual Try-On — putting real product on {model_name}...")
                 vton_image_url = vton_eachlabs(product_image_url, model_data)
             else:
                 print(f"[1/5] Fashion photography generation for {model_name}...")
                 fashion_prompt = build_fashion_prompt(model_data, product_name, product_description)
                 vton_image_url = image_higgsfield(fashion_prompt)
-
+ 
             if not vton_image_url:
                 print(f"  ✗ Image generation failed for {model_name}")
                 final_outputs.append({
@@ -992,7 +1009,7 @@ def run_ugc_pipeline(
                 })
                 continue
             print(f"  ✓ Image: {vton_image_url[:80]}...")
-
+ 
             # ── Step 2: Resolve dynamic storyboard scenes ──
             raw_scenes = get_storyboard_scenes(style_dir, category)
             scenes = []
@@ -1021,32 +1038,36 @@ def run_ugc_pipeline(
             print(f"[2/5] Storyboard planning ({len(scenes)} scenes)...")
             for idx, sc in enumerate(scenes):
                 print(f"    Scene {idx+1} ({sc['name']}): {sc['motion_prompt'][:65]}... ({sc['duration']}s)")
-
+ 
             # ── Step 3: Generate storyboard keyframe images ──
             storyboard_images = []
-            print(f"[3/5] Generating consistent storyboard keyframe images...")
-            for idx, sc in enumerate(scenes):
-                print(f"  → Generating keyframe {idx+1}/{len(scenes)} ({sc['name']})...")
-                # Build an edit instruction prompt optimized for Google's Nano Banana 2 Edit
-                keyframe_prompt = (
-                    f"Modify the pose and scene environment to match: {sc['motion_prompt']}. "
-                    f"Keep the model's identity, face, hair, and the clothing/attire (colors, patterns, style) "
-                    f"exactly the same as the original image. Retain high-end professional fashion photography quality."
-                )
-                
-                scene_img_url = None
-                if img_backend == "eachlabs":
-                    try:
-                        scene_img_url = image_to_image_eachlabs(vton_image_url, keyframe_prompt, style_dir)
-                    except Exception as e:
-                        print(f"    ⚠ Storyboard image generation failed for scene {idx+1}: {e}")
-                
-                if not scene_img_url:
-                    print(f"    → Using base VTON image as fallback for scene {idx+1}")
-                    scene_img_url = vton_image_url
-                
-                print(f"    ✓ Keyframe {idx+1} image: {scene_img_url[:80]}...")
-                storyboard_images.append(scene_img_url)
+            if cached_storyboard and len(cached_storyboard) == len(scenes):
+                print(f"[3/5] Reusing {len(cached_storyboard)} cached storyboard keyframe images...")
+                storyboard_images = cached_storyboard
+            else:
+                print(f"[3/5] Generating consistent storyboard keyframe images...")
+                for idx, sc in enumerate(scenes):
+                    print(f"  → Generating keyframe {idx+1}/{len(scenes)} ({sc['name']})...")
+                    # Build an edit instruction prompt optimized for Google's Nano Banana 2 Edit
+                    keyframe_prompt = (
+                        f"Modify the pose and scene environment to match: {sc['motion_prompt']}. "
+                        f"Keep the model's identity, face, hair, and the clothing/attire (colors, patterns, style) "
+                        f"exactly the same as the original image. Retain high-end professional fashion photography quality."
+                    )
+                    
+                    scene_img_url = None
+                    if img_backend == "eachlabs":
+                        try:
+                            scene_img_url = image_to_image_eachlabs(vton_image_url, keyframe_prompt, style_dir)
+                        except Exception as e:
+                            print(f"    ⚠ Storyboard image generation failed for scene {idx+1}: {e}")
+                    
+                    if not scene_img_url:
+                        print(f"    → Using base VTON image as fallback for scene {idx+1}")
+                        scene_img_url = vton_image_url
+                    
+                    print(f"    ✓ Keyframe {idx+1} image: {scene_img_url[:80]}...")
+                    storyboard_images.append(scene_img_url)
 
             # ── Step 4: Script generation ──
             script = generate_video_script(product_name, model_name, style_dir, category)
@@ -1110,6 +1131,18 @@ def run_ugc_pipeline(
                 "status": status,
                 **({"error": error} if error else {})
             })
+ 
+            if vton_image_url and storyboard_images and status in ("success", "partial"):
+                if model_id not in cache_data:
+                    cache_data[model_id] = {}
+                cache_data[model_id]["vton_image"] = vton_image_url
+                cache_data[model_id]["storyboard_images"] = storyboard_images
+                try:
+                    with open(cache_path, "w") as f:
+                        json.dump(cache_data, f, indent=2)
+                    print(f"  ✓ Cached VTON and storyboard image URLs for {model_name}")
+                except Exception as e:
+                    print(f"  → Warning: Could not write cache file: {e}")
 
 
         except Exception as e:
