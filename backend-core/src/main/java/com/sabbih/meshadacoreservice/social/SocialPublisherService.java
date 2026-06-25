@@ -8,7 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.Map;
 
 @Service
@@ -115,14 +117,16 @@ public class SocialPublisherService {
         String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
         final String finalPageToken = pageToken;
 
+        URI targetUri = UriComponentsBuilder.fromHttpUrl(mediaUrl)
+                .queryParam("media_type", "REELS")
+                .queryParam("video_url", videoUrl)
+                .queryParam("caption", caption)
+                .queryParam("access_token", finalPageToken)
+                .build()
+                .toUri();
+
         Map response = webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path(mediaUrl)
-                        .queryParam("media_type", "REELS")
-                        .queryParam("video_url", videoUrl)
-                        .queryParam("caption", caption)
-                        .queryParam("access_token", finalPageToken)
-                        .build())
+                .uri(targetUri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -149,12 +153,14 @@ public class SocialPublisherService {
                 return;
             }
 
+            URI checkUri = UriComponentsBuilder.fromHttpUrl(statusCheckUrl)
+                    .queryParam("fields", "status_code")
+                    .queryParam("access_token", finalPageToken)
+                    .build()
+                    .toUri();
+
             Map statusResponse = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(statusCheckUrl)
-                            .queryParam("fields", "status_code")
-                            .queryParam("access_token", finalPageToken)
-                            .build())
+                    .uri(checkUri)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(Map.class)
@@ -181,12 +187,14 @@ public class SocialPublisherService {
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
         String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
 
+        URI publishTargetUri = UriComponentsBuilder.fromHttpUrl(publishUrl)
+                .queryParam("creation_id", creationId)
+                .queryParam("access_token", finalPageToken)
+                .build()
+                .toUri();
+
         Map publishResponse = webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path(publishUrl)
-                        .queryParam("creation_id", creationId)
-                        .queryParam("access_token", finalPageToken)
-                        .build())
+                .uri(publishTargetUri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
