@@ -90,16 +90,16 @@ public class SocialAuthController {
         log.info("[OAuth] Exchanging code for user token...");
 
         // 1. Exchange code for access token
-        String tokenUrl = "https://graph.facebook.com/v19.0/oauth/access_token";
+        URI tokenUri = UriComponentsBuilder.fromHttpUrl("https://graph.facebook.com/v19.0/oauth/access_token")
+                .queryParam("client_id", facebookClientId)
+                .queryParam("redirect_uri", redirectUri)
+                .queryParam("client_secret", facebookClientSecret)
+                .queryParam("code", code)
+                .build()
+                .toUri();
         
         return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(tokenUrl)
-                        .queryParam("client_id", facebookClientId)
-                        .queryParam("redirect_uri", redirectUri)
-                        .queryParam("client_secret", facebookClientSecret)
-                        .queryParam("code", code)
-                        .build())
+                .uri(tokenUri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -111,14 +111,16 @@ public class SocialAuthController {
                     
                     // 2. Exchange short-lived token for a long-lived (60 days) user token
                     log.info("[OAuth] Exchanging short-lived token for long-lived user token...");
+                    URI exchangeUri = UriComponentsBuilder.fromHttpUrl("https://graph.facebook.com/v19.0/oauth/access_token")
+                            .queryParam("grant_type", "fb_exchange_token")
+                            .queryParam("client_id", facebookClientId)
+                            .queryParam("client_secret", facebookClientSecret)
+                            .queryParam("fb_exchange_token", userToken)
+                            .build()
+                            .toUri();
+                    
                     return webClient.get()
-                            .uri(uriBuilder -> uriBuilder
-                                    .path(tokenUrl)
-                                    .queryParam("grant_type", "fb_exchange_token")
-                                    .queryParam("client_id", facebookClientId)
-                                    .queryParam("client_secret", facebookClientSecret)
-                                    .queryParam("fb_exchange_token", userToken)
-                                    .build())
+                            .uri(exchangeUri)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
                             .bodyToMono(Map.class);
@@ -131,14 +133,14 @@ public class SocialAuthController {
                     
                     // 3. Fetch linked Pages and their tokens & Instagram Business ID
                     log.info("[OAuth] Fetching linked Facebook Pages and Instagram accounts...");
-                    String accountsUrl = "https://graph.facebook.com/v19.0/me/accounts";
+                    URI accountsUri = UriComponentsBuilder.fromHttpUrl("https://graph.facebook.com/v19.0/me/accounts")
+                            .queryParam("fields", "name,access_token,instagram_business_account{id,username}")
+                            .queryParam("access_token", longLivedUserToken)
+                            .build()
+                            .toUri();
                     
                     return webClient.get()
-                            .uri(uriBuilder -> uriBuilder
-                                    .path(accountsUrl)
-                                    .queryParam("fields", "name,access_token,instagram_business_account{id,username}")
-                                    .queryParam("access_token", longLivedUserToken)
-                                    .build())
+                            .uri(accountsUri)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
                             .bodyToMono(Map.class);
