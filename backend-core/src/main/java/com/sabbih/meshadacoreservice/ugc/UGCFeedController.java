@@ -13,11 +13,15 @@ public class UGCFeedController {
 
     private final UGCVideoRepository videoRepository;
     private final UGCEngineService ugcEngineService;
+    private final UGCAutoSchedulerService schedulerService;
 
     @Autowired
-    public UGCFeedController(UGCVideoRepository videoRepository, UGCEngineService ugcEngineService) {
+    public UGCFeedController(UGCVideoRepository videoRepository, 
+                             UGCEngineService ugcEngineService, 
+                             UGCAutoSchedulerService schedulerService) {
         this.videoRepository = videoRepository;
         this.ugcEngineService = ugcEngineService;
+        this.schedulerService = schedulerService;
     }
 
     @GetMapping("/feed")
@@ -40,5 +44,13 @@ public class UGCFeedController {
         }).start();
 
         return ResponseEntity.ok("Video generation started in the background.");
+    }
+
+    @PostMapping("/scheduler/trigger")
+    public ResponseEntity<String> triggerScheduler() {
+        new Thread(() -> {
+            schedulerService.runDailyUGCPost();
+        }).start();
+        return ResponseEntity.ok("UGC posting scheduler triggered manually in the background.");
     }
 }
