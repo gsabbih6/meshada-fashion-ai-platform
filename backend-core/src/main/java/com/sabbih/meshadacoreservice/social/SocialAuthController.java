@@ -32,6 +32,9 @@ public class SocialAuthController {
     @Value("${spring.security.oauth2.client.registration.facebook.clientSecret:0d0ae8aa8d7018eba40b0187b6a89428}")
     private String facebookClientSecret;
 
+    @Value("${meshada.social.instagram.businessAccountId:17841464487692741}")
+    private String instagramBusinessAccountId;
+
     @Autowired
     public SocialAuthController(SocialCredentialsRepository credentialsRepository, WebClient.Builder webClientBuilder) {
         this.credentialsRepository = credentialsRepository;
@@ -161,17 +164,33 @@ public class SocialAuthController {
                             String igUsername = (String) igAccount.get("username");
                             resultHtml.append(" (Instagram: @").append(igUsername).append(")");
 
-                            // Save Instagram credentials to DB
-                            SocialCredentials credentials = SocialCredentials.builder()
-                                    .platform("instagram")
-                                    .accessToken(pageAccessToken)
-                                    .businessAccountId(igId)
-                                    .updatedAt(LocalDateTime.now())
-                                    .build();
-                            
-                            credentialsRepository.save(credentials);
-                            log.info("[OAuth] Automatically saved Instagram credentials for @{} to the database.", igUsername);
-                            resultHtml.append(" - <span style='color: green;'>Saved & Activated!</span>");
+                            // Determine if this is the target profile.
+                            // Must match the configured target ID, the default active ID "17841464487692741", 
+                            // the username "meshadafashion", or be the only account available.
+                            boolean isTarget = false;
+                            if (instagramBusinessAccountId.equals(igId) || 
+                                    "17841464487692741".equals(igId) || 
+                                    "meshadafashion".equalsIgnoreCase(igUsername)) {
+                                isTarget = true;
+                            } else if (pages.size() == 1) {
+                                isTarget = true;
+                            }
+
+                            if (isTarget) {
+                                // Save Instagram credentials to DB under the active platform key
+                                SocialCredentials credentials = SocialCredentials.builder()
+                                        .platform("instagram")
+                                        .accessToken(pageAccessToken)
+                                        .businessAccountId(igId)
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+                                
+                                credentialsRepository.save(credentials);
+                                log.info("[OAuth] Automatically saved Instagram credentials for @{} to the database.", igUsername);
+                                resultHtml.append(" - <span style='color: green;'>Saved & Activated!</span>");
+                            } else {
+                                resultHtml.append(" - <span style='color: gray;'>Skipped (Non-target profile)</span>");
+                            }
                         } else {
                             resultHtml.append(" - <span style='color: red;'>No linked Instagram Professional account found.</span>");
                         }
