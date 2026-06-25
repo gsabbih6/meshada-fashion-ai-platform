@@ -15,4 +15,7 @@ public interface UGCVideoRepository extends JpaRepository<UGCVideo, Long> {
 
     @Query("SELECT v FROM UGCVideo v WHERE v.url LIKE '%.mp4'")
     List<UGCVideo> findGeneratedVideos();
+
+    @Query("SELECT v FROM UGCVideo v WHERE v.url LIKE '%.mp4' AND (v.published IS NULL OR v.published = false)")
+    List<UGCVideo> findUnpublishedVideos();
 }

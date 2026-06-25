@@ -104,4 +104,25 @@ class UGCAutoSchedulerTests {
         verify(videoRepository, times(1)).findGeneratedVideos();
         verify(socialPublisherService, times(1)).publishVideoToSocial(oldVideo);
     }
+
+    @Test
+    void testSchedulerPublishesUnpublishedVideoDirectly() {
+        // Arrange: 1 unpublished completed video in database
+        UGCVideo unpublishedVideo = UGCVideo.builder()
+                .id(5L)
+                .itemName("Unpublished Silk Dress")
+                .url("https://example.com/generated_silk.mp4")
+                .affiliateLink("https://example.com/shop-silk")
+                .published(false)
+                .build();
+
+        when(videoRepository.findUnpublishedVideos()).thenReturn(List.of(unpublishedVideo));
+
+        // Act
+        schedulerService.runDailyUGCPost();
+
+        // Assert: Publishes the existing video directly and does NOT trigger new generation
+        verify(socialPublisherService, times(1)).publishVideoToSocial(unpublishedVideo);
+        verify(ugcEngineService, never()).generateUGCForProduct(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+    }
 }

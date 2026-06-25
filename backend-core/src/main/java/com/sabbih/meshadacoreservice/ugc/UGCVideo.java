@@ -34,5 +34,8 @@ public class UGCVideo {
     private String script;
     
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    private Boolean published = false;
 }
 
