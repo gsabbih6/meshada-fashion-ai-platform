@@ -39,5 +39,7 @@ public class UGCVideo {
     private Boolean published = false;
 
     private String instagramPostId;
+
+    private Long productId;
 }
 

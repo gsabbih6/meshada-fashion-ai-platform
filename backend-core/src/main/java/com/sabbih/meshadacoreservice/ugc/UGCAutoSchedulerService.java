@@ -2,6 +2,8 @@ package com.sabbih.meshadacoreservice.ugc;
 
 import com.sabbih.meshadacoreservice.products.ProductFeedService;
 import com.sabbih.meshadacoreservice.social.SocialPublisherService;
+import com.sabbih.pepperjamservice.DModels.Product;
+import com.sabbih.pepperjamservice.repositories.ProductRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,17 +20,20 @@ public class UGCAutoSchedulerService {
     private final UGCEngineService ugcEngineService;
     private final SocialPublisherService socialPublisherService;
     private final ProductFeedService productFeedService;
+    private final ProductRepository productRepository;
     private final Random random = new Random();
 
     @Autowired
     public UGCAutoSchedulerService(UGCVideoRepository videoRepository,
                                    UGCEngineService ugcEngineService,
                                    SocialPublisherService socialPublisherService,
-                                   ProductFeedService productFeedService) {
+                                   ProductFeedService productFeedService,
+                                   ProductRepository productRepository) {
         this.videoRepository = videoRepository;
         this.ugcEngineService = ugcEngineService;
         this.socialPublisherService = socialPublisherService;
         this.productFeedService = productFeedService;
+        this.productRepository = productRepository;
     }
 
     /**
@@ -57,28 +62,31 @@ public class UGCAutoSchedulerService {
             log.warn("[UGC Scheduler] Failed to fetch latest products from Pepperjam, proceeding with existing database items.", e);
         }
 
-        // 2. Fetch all placeholders that do not have generated videos yet
-        List<UGCVideo> placeholders = videoRepository.findPlaceholderVideos();
+        // 2. Fetch all products from products table that do not have generated videos yet
+        List<Product> products = productRepository.findByVideoGeneratedFalse();
 
-        if (placeholders.isEmpty()) {
-            log.warn("[UGC Scheduler] No new placeholder products found in the database. Falling back to an old video.");
+        if (products.isEmpty()) {
+            log.warn("[UGC Scheduler] No new unused products found in the database. Falling back to an old video.");
             postOldVideoFallback();
             return;
         }
 
         // 2. Select a random product to generate
-        UGCVideo placeholder = placeholders.get(random.nextInt(placeholders.size()));
-        log.info("[UGC Scheduler] Selected placeholder product: {} (ID: {}) for daily generation.", 
-                placeholder.getItemName(), placeholder.getId());
+        Product product = products.get(random.nextInt(products.size()));
+        log.info("[UGC Scheduler] Selected product: {} (ID: {}) for daily generation.", 
+                product.getProductName(), product.getId());
 
         // Extract parameters for generator
-        // Use placeholder ID as productId, or clean it to fit generator requirements
-        String productId = "prod_" + placeholder.getId();
-        String productName = placeholder.getItemName();
-        String productDescription = "Official styled look for " + productName;
-        String productImageUrl = placeholder.getUrl(); // placeholder url is the catalog image URL
-        String productType = "fashion";
-        String affiliateLink = placeholder.getAffiliateLink();
+        Long productId = product.getId();
+        String productName = product.getProductName();
+        String productDescription = product.getProductDetails() != null && !product.getProductDetails().isEmpty() 
+                ? product.getProductDetails() 
+                : "Official styled look for " + productName;
+        String productImageUrl = product.getThumbnail();
+        String productType = product.getCategory() != null && !product.getCategory().isEmpty() 
+                ? product.getCategory() 
+                : "fashion";
+        String affiliateLink = product.getPaymentUrl();
 
         // 3. Attempt to generate new video
         log.info("[UGC Scheduler] Triggering UGC video generation for product ID: {}", productId);
@@ -88,6 +96,9 @@ public class UGCAutoSchedulerService {
 
         if (success) {
             log.info("[UGC Scheduler] Successfully generated and published new UGC video for: {}", productName);
+            // Mark product as video generated
+            product.setVideoGenerated(true);
+            productRepository.save(product);
         } else {
             // 4. Fallback to old video if credits are exhausted / generation fails
             log.warn("[UGC Scheduler] UGC video generation failed (likely credit exhaustion). Falling back to reposting an old video.");

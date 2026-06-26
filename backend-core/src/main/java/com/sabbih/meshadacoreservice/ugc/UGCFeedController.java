@@ -49,7 +49,12 @@ public class UGCFeedController {
  
     @PostMapping("/generate")
     public ResponseEntity<String> generateVideo(@RequestBody Map<String, String> payload) {
-        String productId = payload.getOrDefault("productId", "test_id");
+        Long productId = 0L;
+        try {
+            productId = Long.parseLong(payload.getOrDefault("productId", "0"));
+        } catch (NumberFormatException e) {
+            // ignore / default to 0L
+        }
         String productName = payload.getOrDefault("productName", "Test Product");
         String productDescription = payload.getOrDefault("productDescription", "Test Description");
         String productImageUrl = payload.getOrDefault("productImageUrl", "https://example.com/test.jpg");
@@ -57,8 +62,9 @@ public class UGCFeedController {
         String affiliateLink = payload.getOrDefault("affiliateLink", "https://example.com/product");
  
         // Run async using Spring-managed Executor
+        final Long finalProductId = productId;
         taskExecutor.execute(() -> {
-            ugcEngineService.generateUGCForProduct(productId, productName, productDescription, productImageUrl, productType, affiliateLink);
+            ugcEngineService.generateUGCForProduct(finalProductId, productName, productDescription, productImageUrl, productType, affiliateLink);
         });
  
         return ResponseEntity.ok("Video generation started in the background.");

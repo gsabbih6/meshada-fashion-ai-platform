@@ -2,8 +2,10 @@ package com.sabbih.meshadacoreservice.products;
 
 import com.sabbih.meshadacoreservice.ugc.UGCVideo;
 import com.sabbih.meshadacoreservice.ugc.UGCVideoRepository;
+import com.sabbih.pepperjamservice.DModels.Product;
 import com.sabbih.pepperjamservice.models.PProduct;
 import com.sabbih.pepperjamservice.models.PepperJamProduct;
+import com.sabbih.pepperjamservice.repositories.ProductRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,10 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Slf4j
@@ -22,15 +23,18 @@ public class ProductFeedService {
 
     private final WebClient pepperClient;
     private final UGCVideoRepository videoRepository;
+    private final ProductRepository productRepository;
 
     @Value("${meshada.pepper.apiKey}")
     private String pepperApiKey;
 
     @Autowired
     public ProductFeedService(@Qualifier("pepperClient") WebClient pepperClient,
-                                  UGCVideoRepository videoRepository) {
+                              UGCVideoRepository videoRepository,
+                              ProductRepository productRepository) {
         this.pepperClient = pepperClient;
         this.videoRepository = videoRepository;
+        this.productRepository = productRepository;
     }
 
     public List<String> fetchPepperjamProducts(String programId) {
@@ -54,17 +58,26 @@ public class ProductFeedService {
                     if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()
                             && product.getBuyUrl() != null && !product.getBuyUrl().isEmpty()) {
 
-                        UGCVideo video = UGCVideo.builder()
-                                .url(product.getImageUrl()) // Use product image as placeholder until AI generates video
-                                .affiliateLink(product.getBuyUrl())
-                                .modelName(product.getProgramName())
-                                .itemName(product.getName())
-                                .createdAt(LocalDateTime.now())
-                                .build();
+                        if (!productRepository.existsBySKU(product.getSku())) {
+                            Product newProduct = Product.builder()
+                                    .SKU(product.getSku())
+                                    .productName(product.getName())
+                                    .programName(product.getProgramName())
+                                    .paymentUrl(product.getBuyUrl())
+                                    .thumbnail(product.getImageUrl())
+                                    .price(Double.parseDouble(product.getPrice()))
+                                    .currency(product.getCurrency())
+                                    .color(product.getColor())
+                                    .brandName(product.getManufacturer())
+                                    .videoGenerated(false)
+                                    .createdAt(Instant.now())
+                                    .updateAt(Instant.now())
+                                    .build();
 
-                        videoRepository.save(video);
-                        addedProducts.add(product.getName());
-                        count++;
+                            productRepository.save(newProduct);
+                            addedProducts.add(product.getName());
+                            count++;
+                        }
                     }
                 }
             }

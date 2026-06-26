@@ -30,13 +30,13 @@ public class UGCEngineService {
         this.socialPublisherService = socialPublisherService;
     }
 
-    public boolean generateUGCForProduct(String productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
+    public boolean generateUGCForProduct(Long productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
         StringBuilder output = new StringBuilder();
         try {
             
             ProcessBuilder pb = new ProcessBuilder(
                     "python3", scriptPath,
-                    "--product_id", productId,
+                    "--product_id", String.valueOf(productId),
                     "--product_name", productName,
                     "--product_description", productDescription,
                     "--product_image_url", productImageUrl,
@@ -79,6 +79,7 @@ public class UGCEngineService {
                         video.setScript((String) asset.get("script"));
                         video.setVtonImageUrl((String) asset.get("vton_image"));
                         video.setCreatedAt(java.time.LocalDateTime.now());
+                        video.setProductId(productId);
                         
                         UGCVideo savedVideo = ugcVideoRepository.save(video);
                         socialPublisherService.publishVideoToSocial(savedVideo);

@@ -2,6 +2,8 @@ package com.sabbih.meshadacoreservice.ugc;
 
 import com.sabbih.meshadacoreservice.products.ProductFeedService;
 import com.sabbih.meshadacoreservice.social.SocialPublisherService;
+import com.sabbih.pepperjamservice.DModels.Product;
+import com.sabbih.pepperjamservice.repositories.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,6 +20,7 @@ class UGCAutoSchedulerTests {
     private UGCEngineService ugcEngineService;
     private SocialPublisherService socialPublisherService;
     private ProductFeedService productFeedService;
+    private ProductRepository productRepository;
     private UGCAutoSchedulerService schedulerService;
 
     @BeforeEach
@@ -26,40 +29,46 @@ class UGCAutoSchedulerTests {
         ugcEngineService = mock(UGCEngineService.class);
         socialPublisherService = mock(SocialPublisherService.class);
         productFeedService = mock(ProductFeedService.class);
-        schedulerService = new UGCAutoSchedulerService(videoRepository, ugcEngineService, socialPublisherService, productFeedService);
+        productRepository = mock(ProductRepository.class);
+        schedulerService = new UGCAutoSchedulerService(
+                videoRepository, ugcEngineService, socialPublisherService, productFeedService, productRepository
+        );
     }
 
     @Test
     void testSchedulerSuccessfullyGeneratesAndPostsNewVideo() {
         // Arrange
-        UGCVideo placeholder = UGCVideo.builder()
+        Product product = Product.builder()
                 .id(10L)
-                .itemName("Cool Tanktop")
-                .url("https://example.com/placeholder.jpg")
-                .affiliateLink("https://example.com/shop")
+                .productName("Cool Tanktop")
+                .thumbnail("https://example.com/placeholder.jpg")
+                .paymentUrl("https://example.com/shop")
+                .videoGenerated(false)
                 .build();
 
-        when(videoRepository.findPlaceholderVideos()).thenReturn(List.of(placeholder));
+        when(productRepository.findByVideoGeneratedFalse()).thenReturn(List.of(product));
         when(ugcEngineService.generateUGCForProduct(
-                eq("prod_10"), eq("Cool Tanktop"), anyString(), eq("https://example.com/placeholder.jpg"), anyString(), eq("https://example.com/shop")
+                eq(10L), eq("Cool Tanktop"), anyString(), eq("https://example.com/placeholder.jpg"), anyString(), eq("https://example.com/shop")
         )).thenReturn(true);
 
         // Act
         schedulerService.runDailyUGCPost();
 
         // Assert
-        verify(ugcEngineService, times(1)).generateUGCForProduct(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(ugcEngineService, times(1)).generateUGCForProduct(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(productRepository, times(1)).save(product);
         verify(socialPublisherService, never()).publishVideoToSocial(any(UGCVideo.class)); // Generation handles publishing in service
     }
 
     @Test
     void testSchedulerFallsBackToOldVideoWhenGenerationFails() {
-        // Arrange: 1 placeholder, 1 old video
-        UGCVideo placeholder = UGCVideo.builder()
+        // Arrange: 1 product, 1 old video
+        Product product = Product.builder()
                 .id(10L)
-                .itemName("Cool Tanktop")
-                .url("https://example.com/placeholder.jpg")
-                .affiliateLink("https://example.com/shop")
+                .productName("Cool Tanktop")
+                .thumbnail("https://example.com/placeholder.jpg")
+                .paymentUrl("https://example.com/shop")
+                .videoGenerated(false)
                 .build();
 
         UGCVideo oldVideo = UGCVideo.builder()
@@ -69,26 +78,26 @@ class UGCAutoSchedulerTests {
                 .affiliateLink("https://example.com/shop-old")
                 .build();
 
-        when(videoRepository.findPlaceholderVideos()).thenReturn(List.of(placeholder));
+        when(productRepository.findByVideoGeneratedFalse()).thenReturn(List.of(product));
         when(videoRepository.findGeneratedVideos()).thenReturn(List.of(oldVideo));
         
         // Mock generation failure (e.g. credit exhaustion)
         when(ugcEngineService.generateUGCForProduct(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString()
+                anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()
         )).thenReturn(false);
 
         // Act
         schedulerService.runDailyUGCPost();
 
         // Assert
-        verify(ugcEngineService, times(1)).generateUGCForProduct(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(ugcEngineService, times(1)).generateUGCForProduct(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
         verify(videoRepository, times(1)).findGeneratedVideos();
         verify(socialPublisherService, times(1)).publishVideoToSocial(oldVideo); // Fallback triggers old video posting
     }
 
     @Test
-    void testSchedulerFallsBackToOldVideoWhenNoPlaceholdersExist() {
-        // Arrange: 0 placeholders, 1 old video
+    void testSchedulerFallsBackToOldVideoWhenNoProductsExist() {
+        // Arrange: 0 products, 1 old video
         UGCVideo oldVideo = UGCVideo.builder()
                 .id(2L)
                 .itemName("Old Jersey Shirt")
@@ -96,14 +105,14 @@ class UGCAutoSchedulerTests {
                 .affiliateLink("https://example.com/shop-old")
                 .build();
 
-        when(videoRepository.findPlaceholderVideos()).thenReturn(Collections.emptyList());
+        when(productRepository.findByVideoGeneratedFalse()).thenReturn(Collections.emptyList());
         when(videoRepository.findGeneratedVideos()).thenReturn(List.of(oldVideo));
 
         // Act
         schedulerService.runDailyUGCPost();
 
         // Assert
-        verify(ugcEngineService, never()).generateUGCForProduct(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(ugcEngineService, never()).generateUGCForProduct(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
         verify(videoRepository, times(1)).findGeneratedVideos();
         verify(socialPublisherService, times(1)).publishVideoToSocial(oldVideo);
     }
@@ -126,6 +135,6 @@ class UGCAutoSchedulerTests {
 
         // Assert: Publishes the existing video directly and does NOT trigger new generation
         verify(socialPublisherService, times(1)).publishVideoToSocial(unpublishedVideo);
-        verify(ugcEngineService, never()).generateUGCForProduct(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(ugcEngineService, never()).generateUGCForProduct(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 }
