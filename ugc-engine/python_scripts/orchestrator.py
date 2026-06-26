@@ -1375,7 +1375,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
                 "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400"
             ],
             "script": f"Obsessed with this {product_name}. The fit is absolutely flawless.",
-            "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             "backend": "test_mode", "status": "mock",
         },
         {
@@ -1387,7 +1387,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
                 "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400"
             ],
             "script": f"Streetwear essential unlocked 🔥 This {product_name} is everything.",
-            "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             "backend": "test_mode", "status": "mock",
         },
         {
@@ -1399,7 +1399,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
                 "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400"
             ],
             "script": f"Hey! I just found the cutest {product_name} ever. Link in bio! 💕",
-            "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             "backend": "test_mode", "status": "mock",
         },
     ]
