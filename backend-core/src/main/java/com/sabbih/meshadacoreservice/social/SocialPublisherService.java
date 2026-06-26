@@ -71,26 +71,34 @@ public class SocialPublisherService {
         }
 
         // 2. Post to Twitter/X
-        try {
-            publishToTwitter(video.getUrl(), caption);
-        } catch (Exception e) {
-            log.error("[Social Publisher] Failed to publish to Twitter/X: {}", e.getMessage());
+        if (video.getUrl() != null && !video.getUrl().isEmpty()) {
+            try {
+                publishToTwitter(video.getUrl(), caption);
+            } catch (Exception e) {
+                log.error("[Social Publisher] Failed to publish to Twitter/X: {}", e.getMessage());
+            }
+        } else {
+            log.warn("[Twitter Publisher] Video URL is empty. Twitter publishing skipped.");
         }
-
+ 
         // 3. Post to TikTok
-        try {
-            publishToTikTok(video.getUrl(), caption);
-        } catch (Exception e) {
-            log.error("[Social Publisher] Failed to publish to TikTok: {}", e.getMessage());
+        if (video.getUrl() != null && !video.getUrl().isEmpty()) {
+            try {
+                publishToTikTok(video.getUrl(), caption);
+            } catch (Exception e) {
+                log.error("[Social Publisher] Failed to publish to TikTok: {}", e.getMessage());
+            }
+        } else {
+            log.warn("[TikTok Publisher] Video URL is empty. TikTok publishing skipped.");
         }
-
+ 
         // 4. Post to Pinterest
         try {
             pinterestSuccess = publishToPinterest(video.getUrl(), video.getItemName(), caption, video.getAffiliateLink(), video.getVtonImageUrl());
         } catch (Exception e) {
-            log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
+            log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage(), e);
         }
-
+ 
         // Save publication state if at least one main platform succeeded
         if (instagramSuccess || pinterestSuccess) {
             video.setPublished(true);
@@ -98,7 +106,7 @@ public class SocialPublisherService {
             log.info("[Social Publisher] Successfully marked video ID: {} as published in database.", video.getId());
         }
     }
-
+ 
     /**
      * Publish video as Instagram Reels.
      * Meta API Reels flow:
@@ -109,7 +117,7 @@ public class SocialPublisherService {
     private boolean publishToInstagramReels(String videoUrl, String caption) {
         String pageToken = instagramPageAccessToken;
         String bizAccountId = instagramBusinessAccountId;
-
+ 
         // Dynamic lookup from database
         java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
         if (credsOpt.isPresent()) {
@@ -121,17 +129,22 @@ public class SocialPublisherService {
                 bizAccountId = creds.getBusinessAccountId();
             }
         }
-
+ 
         if (pageToken == null || pageToken.isEmpty() ||
                 bizAccountId == null || bizAccountId.isEmpty()) {
             log.warn("[Instagram Publisher] Credentials not configured. Reels publishing skipped.");
             return false;
         }
-
+ 
+        if (videoUrl == null || videoUrl.isEmpty()) {
+            log.warn("[Instagram Publisher] Video URL is empty. Reels publishing skipped.");
+            return false;
+        }
+ 
         log.info("[Instagram Publisher] Creating Reels media container...");
         String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
         final String finalPageToken = pageToken;
-
+ 
         URI targetUri = UriComponentsBuilder.fromHttpUrl(mediaUrl)
                 .queryParam("media_type", "REELS")
                 .queryParam("video_url", videoUrl)
@@ -139,27 +152,27 @@ public class SocialPublisherService {
                 .queryParam("access_token", finalPageToken)
                 .build()
                 .toUri();
-
+ 
         Map response = webClient.post()
                 .uri(targetUri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block();
-
+ 
         if (response == null || !response.containsKey("id")) {
             log.error("[Instagram Publisher] Failed to create Reels container. Response: {}", response);
             return false;
         }
-
+ 
         String creationId = response.get("id").toString();
         log.info("[Instagram Publisher] Reels container created. ID: {}. Polling processing status...", creationId);
-
+ 
         // Poll container status
         boolean finished = false;
         int attempts = 0;
         String statusCheckUrl = "https://graph.facebook.com/v19.0/" + creationId;
-
+ 
         while (attempts < 15 && !finished) {
             try {
                 Thread.sleep(10000); // Wait 10 seconds between checks
@@ -167,20 +180,20 @@ public class SocialPublisherService {
                 Thread.currentThread().interrupt();
                 return false;
             }
-
+ 
             URI checkUri = UriComponentsBuilder.fromHttpUrl(statusCheckUrl)
                     .queryParam("fields", "status_code")
                     .queryParam("access_token", finalPageToken)
                     .build()
                     .toUri();
-
+ 
             Map statusResponse = webClient.get()
                     .uri(checkUri)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
-
+ 
             if (statusResponse != null && statusResponse.containsKey("status_code")) {
                 String statusCode = statusResponse.get("status_code").toString();
                 log.info("[Instagram Publisher] Status check attempt {}/15: {}", attempts + 1, statusCode);
@@ -193,28 +206,28 @@ public class SocialPublisherService {
             }
             attempts++;
         }
-
+ 
         if (!finished) {
             log.error("[Instagram Publisher] Reels processing timed out on Meta's server.");
             return false;
         }
-
+ 
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
         String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
-
+ 
         URI publishTargetUri = UriComponentsBuilder.fromHttpUrl(publishUrl)
                 .queryParam("creation_id", creationId)
                 .queryParam("access_token", finalPageToken)
                 .build()
                 .toUri();
-
+ 
         Map publishResponse = webClient.post()
                 .uri(publishTargetUri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block();
-
+ 
         if (publishResponse != null && publishResponse.containsKey("id")) {
             log.info("[Instagram Publisher] Reels published successfully! Post ID: {}", publishResponse.get("id"));
             return true;
@@ -223,7 +236,7 @@ public class SocialPublisherService {
             return false;
         }
     }
-
+ 
     /**
      * Publish Tweet with Video details on Twitter/X.
      * Twitter API v2: POST /2/tweets
@@ -237,9 +250,8 @@ public class SocialPublisherService {
         log.info("[Twitter Publisher] Creating Tweet...");
         String url = "https://api.twitter.com/2/tweets";
 
-        Map<String, Object> requestBody = Map.of(
-                "text", caption + "\n\nWatch: " + videoUrl
-        );
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("text", (caption != null ? caption : "Check out this outfit!") + "\n\nWatch: " + (videoUrl != null ? videoUrl : ""));
 
         Map response = webClient.post()
                 .uri(url)
@@ -256,7 +268,7 @@ public class SocialPublisherService {
             log.error("[Twitter Publisher] Failed to post Tweet: {}", response);
         }
     }
-
+ 
     /**
      * Publish video on TikTok.
      * TikTok Direct Post API: POST /v2/post/publish/video/init/
@@ -270,21 +282,18 @@ public class SocialPublisherService {
         log.info("[TikTok Publisher] Initiating video publish request...");
         String url = "https://open.tiktokapis.com/v2/post/publish/video/init/";
 
-        Map<String, Object> postInfo = Map.of(
-                "title", caption,
-                "privacy_level", "PUBLIC_TO_EVERYONE",
-                "video_cover_timestamp_ms", 1000
-        );
+        Map<String, Object> postInfo = new java.util.HashMap<>();
+        postInfo.put("title", caption != null ? caption : "New Outfit");
+        postInfo.put("privacy_level", "PUBLIC_TO_EVERYONE");
+        postInfo.put("video_cover_timestamp_ms", 1000);
 
-        Map<String, Object> sourceInfo = Map.of(
-                "source", "PULL_FROM_URL",
-                "video_url", videoUrl
-        );
+        Map<String, Object> sourceInfo = new java.util.HashMap<>();
+        sourceInfo.put("source", "PULL_FROM_URL");
+        sourceInfo.put("video_url", videoUrl != null ? videoUrl : "");
 
-        Map<String, Object> requestBody = Map.of(
-                "post_info", postInfo,
-                "source_info", sourceInfo
-        );
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("post_info", postInfo);
+        requestBody.put("source_info", sourceInfo);
 
         Map response = webClient.post()
                 .uri(url)
@@ -301,7 +310,7 @@ public class SocialPublisherService {
             log.error("[TikTok Publisher] Failed to upload TikTok video: {}", response);
         }
     }
-
+ 
     /**
      * Publish Pin on Pinterest.
      * Pinterest API v5: POST https://api.pinterest.com/v5/pins
@@ -312,25 +321,30 @@ public class SocialPublisherService {
             log.warn("[Pinterest Publisher] Access Token or Board ID not configured. Pinterest publishing skipped.");
             return false;
         }
-
+ 
         log.info("[Pinterest Publisher] Creating Pin on board: {}", pinterestBoardId);
         String url = "https://api.pinterest.com/v5/pins";
-
-        // Since Pinterest requires direct video file binary upload to S3 for video Pins (which is highly complex asynchronously),
-        // we publish a high-quality visual Image Pin showcasing the virtual try-on model wearing the apparel.
-        // This links directly to the affiliate shop URL, which is the most standard Pinterest affiliate flow.
-        Map<String, Object> mediaSource = Map.of(
-                "source_type", "image_url",
-                "url", coverImageUrl != null && !coverImageUrl.isEmpty() ? coverImageUrl : mediaUrl
-        );
-
-        Map<String, Object> requestBody = Map.of(
-                "board_id", pinterestBoardId,
-                "title", title != null ? title : "Styled by Meshada",
-                "description", description,
-                "link", link,
-                "media_source", mediaSource
-        );
+ 
+        // Since Pinterest requires direct video file binary upload to S3 for video Pins,
+        // we publish a high-quality visual Image Pin showcasing the virtual try-on model.
+        Map<String, Object> mediaSource = new java.util.HashMap<>();
+        mediaSource.put("source_type", "image_url");
+        String finalUrl = (coverImageUrl != null && !coverImageUrl.isEmpty()) ? coverImageUrl : mediaUrl;
+        if (finalUrl == null || finalUrl.isEmpty()) {
+            finalUrl = "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"; // fallback
+        }
+        mediaSource.put("url", finalUrl);
+ 
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("board_id", pinterestBoardId);
+        requestBody.put("title", title != null ? title : "Styled by Meshada");
+        if (description != null) {
+            requestBody.put("description", description);
+        }
+        if (link != null) {
+            requestBody.put("link", link);
+        }
+        requestBody.put("media_source", mediaSource);
 
         try {
             Map response = webClient.post()
