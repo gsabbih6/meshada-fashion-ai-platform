@@ -38,3 +38,6 @@ npm-debug.log*
 **/rsa.private.key
 **/rsa.public.key
 
+# Scratch folder
+**/ugc-engine/python_scripts/scratch/
+
