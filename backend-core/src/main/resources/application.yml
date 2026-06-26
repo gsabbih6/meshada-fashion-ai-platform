@@ -105,8 +105,8 @@ meshada:
   pepper:
     apiKey: ${PEPPERJAM_API_KEY:}
   app:
-    url: https://www.meshada.com
-    webapp: https://www.meshada.com
+    url: ${MESHADA_APP_URL:https://www.meshada.com}
+    webapp: ${MESHADA_WEBAPP_URL:https://www.meshada.com}
       #lang-chain4j:
       #  chat-model:
       #    provider: openai
