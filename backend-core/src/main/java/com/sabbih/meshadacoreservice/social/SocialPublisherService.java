@@ -84,6 +84,8 @@ public class SocialPublisherService {
         // 1. Post to Instagram Reels
         try {
             instagramSuccess = publishToInstagramReels(absoluteVideoUrl, caption);
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("[Social Publisher] Failed to publish to Instagram: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Instagram: {}", e.getMessage());
         }
@@ -113,6 +115,8 @@ public class SocialPublisherService {
         // 4. Post to Pinterest
         try {
             pinterestSuccess = publishToPinterest(absoluteVideoUrl, video.getItemName(), caption, video.getAffiliateLink(), absoluteVtonImageUrl);
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("[Social Publisher] Failed to publish to Pinterest: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
         }
@@ -381,6 +385,9 @@ public class SocialPublisherService {
                 log.error("[Pinterest Publisher] Failed to create Pin: {}", response);
                 return false;
             }
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("[Pinterest Publisher] Failed to create Pin: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
+            return false;
         } catch (Exception e) {
             log.error("[Pinterest Publisher] Failed to create Pin: {}", e.getMessage());
             return false;
