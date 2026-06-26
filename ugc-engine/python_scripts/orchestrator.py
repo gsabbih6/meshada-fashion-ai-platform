@@ -1286,18 +1286,33 @@ def run_ugc_pipeline(
                 def on_scene_started(tid):
                     update_in_flight_state(product_id, [model_id, scene_key], tid)
                     
+                scene_video_url = None
                 if video_backend == "eachlabs":
-                    scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                    try:
+                        scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                    except Exception as e:
+                        print(f"    ⚠ EachLabs video generation failed: {e}")
+                    
                     # Dynamic Fallback to Higgsfield if EachLabs fails
                     if not scene_video_url and has_higgsfield:
                         print("    ⚠ EachLabs video failed, attempting fallback to Higgsfield...")
-                        scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
+                        try:
+                            scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
+                        except Exception as e:
+                            print(f"    ⚠ Higgsfield video generation fallback failed: {e}")
                 else:
-                    scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
+                    try:
+                        scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
+                    except Exception as e:
+                        print(f"    ⚠ Higgsfield video generation failed: {e}")
+                    
                     # Dynamic Fallback to EachLabs if Higgsfield fails
                     if not scene_video_url and has_eachlabs:
                         print("    ⚠ Higgsfield video failed, attempting fallback to EachLabs...")
-                        scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                        try:
+                            scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                        except Exception as e:
+                            print(f"    ⚠ EachLabs video generation fallback failed: {e}")
                 
                 if scene_video_url:
                     print(f"    ✓ Scene {idx+1} video URL: {scene_video_url[:80]}...")
