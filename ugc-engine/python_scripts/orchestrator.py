@@ -745,33 +745,80 @@ def generate_video_script(product_name: str, model_name: str, style_dir: str = "
 
 
 
+
+
+# ─── Mid-Flight State Management ────────────────────────────────────────────────
+
+def get_state_path(product_id: str) -> str:
+    return os.path.join("output_assets", f"in_flight_{product_id}.json")
+
+def load_in_flight_state(product_id: str) -> dict:
+    path = get_state_path(product_id)
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_in_flight_state(product_id: str, state_data: dict):
+    path = get_state_path(product_id)
+    try:
+        with open(path, "w") as f:
+            json.dump(state_data, f, indent=2)
+    except Exception as e:
+        print(f"  → Warning: Could not write in-flight state file: {e}")
+
+def update_in_flight_state(product_id: str, key_path: list, task_id: str):
+    state = load_in_flight_state(product_id)
+    curr = state
+    for k in key_path[:-1]:
+        if k not in curr:
+            curr[k] = {}
+        curr = curr[k]
+    curr[key_path[-1]] = task_id
+    save_in_flight_state(product_id, state)
+
+def clear_in_flight_state(product_id: str):
+    path = get_state_path(product_id)
+    if os.path.exists(path):
+        os.remove(path)
+
 # ─── EachLabs VTON Integration ──────────────────────────────────────────────────
 
-def _eachlabs_predict(model_slug: str, input_data: dict) -> dict:
+def _eachlabs_predict(model_slug: str, input_data: dict, existing_task_id: str = None, on_task_started=None) -> dict:
     """Submit prediction to EachLabs and poll until complete."""
     api_key = os.getenv("EACHLABS_API_KEY")
     headers = {"Content-Type": "application/json", "X-API-Key": api_key}
 
-    # Submit prediction
-    resp = requests.post(f"{EACHLABS_BASE_URL}/prediction", headers=headers, json={
-        "model": model_slug,
-        "version": "0.0.1",
-        "input": input_data,
-    })
-    if resp.status_code not in (200, 201):
-        try:
-            err_json = resp.json()
-            err_msg = err_json.get("details") or err_json.get("error") or resp.text
-            raise Exception(f"EachLabs API Error ({resp.status_code}): {err_msg}")
-        except Exception as e:
-            if "EachLabs API Error" in str(e):
-                raise e
-            resp.raise_for_status()
-    result = resp.json()
-    prediction_id = result.get("id") or result.get("prediction_id") or result.get("predictionID")
-
+    prediction_id = existing_task_id
     if not prediction_id:
-        return result
+        # Submit prediction
+        resp = requests.post(f"{EACHLABS_BASE_URL}/prediction", headers=headers, json={
+            "model": model_slug,
+            "version": "0.0.1",
+            "input": input_data,
+        })
+        if resp.status_code not in (200, 201):
+            try:
+                err_json = resp.json()
+                err_msg = err_json.get("details") or err_json.get("error") or resp.text
+                raise Exception(f"EachLabs API Error ({resp.status_code}): {err_msg}")
+            except Exception as e:
+                if "EachLabs API Error" in str(e):
+                    raise e
+                resp.raise_for_status()
+        result = resp.json()
+        prediction_id = result.get("id") or result.get("prediction_id") or result.get("predictionID")
+        
+        if not prediction_id:
+            return result
+            
+        if on_task_started:
+            on_task_started(prediction_id)
+    else:
+        print(f"  → Resuming existing EachLabs task: {prediction_id}")
 
     # Poll for completion
     for _ in range(120):  # Max 10 minutes
@@ -792,14 +839,14 @@ def _eachlabs_predict(model_slug: str, input_data: dict) -> dict:
     raise TimeoutError("EachLabs prediction timed out after 10 minutes")
 
 
-def vton_eachlabs(product_image_url: str, model_data: dict) -> str:
+def vton_eachlabs(product_image_url: str, model_data: dict, existing_task_id: str = None, on_task_started=None) -> str:
     """Virtual try-on using EachLabs Kolors VTON — puts real product on AI model."""
     print(f"  → Virtual Try-On via EachLabs ({EACHLABS_VTON_MODEL})...")
     
     result = _eachlabs_predict(EACHLABS_VTON_MODEL, {
         "garment_image_url": product_image_url,
         "human_image_url": model_data["human_image_url"],
-    })
+    }, existing_task_id, on_task_started)
 
     # Extract output URL
     output = result.get("output", {})
@@ -810,7 +857,7 @@ def vton_eachlabs(product_image_url: str, model_data: dict) -> str:
     return ""
 
 
-def image_to_image_eachlabs(image_url: str, prompt: str, style_dir: str) -> str:
+def image_to_image_eachlabs(image_url: str, prompt: str, style_dir: str, existing_task_id: str = None, on_task_started=None) -> str:
     """Generate a character-consistent storyboard image using EachLabs Google Nano Banana 2 Edit."""
     print(f"  → Storyboard keyframe image generation via EachLabs ({EACHLABS_IMG2IMG_MODEL})...")
     
@@ -820,7 +867,7 @@ def image_to_image_eachlabs(image_url: str, prompt: str, style_dir: str) -> str:
         "aspect_ratio": "9:16",
         "resolution": "1K",
         "thinking_level": "high",
-    })
+    }, existing_task_id, on_task_started)
 
     output = result.get("output", {})
     if isinstance(output, dict):
@@ -831,7 +878,7 @@ def image_to_image_eachlabs(image_url: str, prompt: str, style_dir: str) -> str:
 
 
 
-def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5) -> str:
+def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5, existing_task_id: str = None, on_task_started=None) -> str:
     """Generate runway video using EachLabs Pixverse."""
     print(f"  → Video generation via EachLabs ({EACHLABS_VIDEO_MODEL})...")
 
@@ -840,7 +887,7 @@ def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5) -> str
         "prompt": motion_prompt,
         "duration": str(duration),
         "resolution": "1080p",
-    })
+    }, existing_task_id, on_task_started)
 
     output = result.get("output", {})
     if isinstance(output, dict):
@@ -852,15 +899,40 @@ def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5) -> str
 
 # ─── Higgsfield Integration ────────────────────────────────────────────────────
 
-def image_higgsfield(prompt: str) -> str:
+def image_higgsfield(prompt: str, existing_task_id: str = None, on_task_started=None) -> str:
     """Generate image using Higgsfield Soul."""
     print(f"  → Image generation via Higgsfield Soul...")
-    result = higgsfield_client.subscribe(
-        HF_IMAGE_MODEL,
-        arguments={"prompt": prompt, "aspect_ratio": "9:16", "resolution": "720p"},
-    )
-    images = result.get("images", [])
-    return images[0].get("url", "") if images else ""
+    
+    if existing_task_id:
+        print(f"  → Resuming existing Higgsfield task: {existing_task_id}")
+        request_id = existing_task_id
+    else:
+        req = higgsfield_client.submit(
+            HF_IMAGE_MODEL,
+            arguments={"prompt": prompt, "aspect_ratio": "9:16", "resolution": "720p"},
+        )
+        # Handle SyncRequestController attributes, fallback if different structure
+        request_id = getattr(req, 'request_id', None)
+        if not request_id and hasattr(req, '__dict__'):
+            for v in req.__dict__.values():
+                if isinstance(v, str) and len(v) > 10:
+                    request_id = v
+                    break
+        if on_task_started and request_id:
+            on_task_started(request_id)
+            
+    # Poll
+    for _ in range(120): # 10 mins
+        time.sleep(5)
+        status = higgsfield_client.status(request_id)
+        if type(status) in higgsfield_client.DONE_STATUSES:
+            if type(status) == higgsfield_client.types_.Completed:
+                result = higgsfield_client.result(request_id)
+                images = result.get("images", [])
+                return images[0].get("url", "") if images else ""
+            else:
+                raise Exception(f"Higgsfield failed with status: {type(status)}")
+    raise TimeoutError("Higgsfield generation timed out")
 
 
 def video_higgsfield(image_url: str, motion_prompt: str, duration: int = 5) -> str:
@@ -1088,10 +1160,15 @@ def run_ugc_pipeline(
                 scene_base_img = storyboard_images[idx]
                 
                 # Request video generation from the backend
+                scene_key = f"scene_{idx}"
+                scene_task_id = in_flight.get(scene_key)
+                def on_scene_started(tid):
+                    update_in_flight_state(product_id, [model_id, scene_key], tid)
+                    
                 if video_backend == "eachlabs":
-                    scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur)
+                    scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
                 else:
-                    scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur)
+                    scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
                 
                 if scene_video_url:
                     print(f"    ✓ Scene {idx+1} video URL: {scene_video_url[:80]}...")
@@ -1156,6 +1233,9 @@ def run_ugc_pipeline(
     if not final_outputs or all(o.get("status") == "failed" for o in final_outputs):
         print("\n[FALLBACK] All models failed. Returning mock data.")
         return _mock_outputs(product_id, product_name, model_id_filter)
+
+    # Clear in-flight state now that everything successfully generated
+    clear_in_flight_state(product_id)
 
     return final_outputs
 
