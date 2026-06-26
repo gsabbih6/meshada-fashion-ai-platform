@@ -1282,8 +1282,16 @@ def run_ugc_pipeline(
                     
                 if video_backend == "eachlabs":
                     scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                    # Dynamic Fallback to Higgsfield if EachLabs fails
+                    if not scene_video_url and has_higgsfield:
+                        print("    ⚠ EachLabs video failed, attempting fallback to Higgsfield...")
+                        scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
                 else:
                     scene_video_url = video_higgsfield(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
+                    # Dynamic Fallback to EachLabs if Higgsfield fails
+                    if not scene_video_url and has_eachlabs:
+                        print("    ⚠ Higgsfield video failed, attempting fallback to EachLabs...")
+                        scene_video_url = video_eachlabs(scene_base_img, scene_prompt, scene_dur, existing_task_id=scene_task_id, on_task_started=on_scene_started)
                 
                 if scene_video_url:
                     print(f"    ✓ Scene {idx+1} video URL: {scene_video_url[:80]}...")
