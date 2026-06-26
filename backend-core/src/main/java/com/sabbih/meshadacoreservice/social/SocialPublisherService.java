@@ -40,12 +40,27 @@ public class SocialPublisherService {
     @Value("${meshada.social.pinterest.boardId:}")
     private String pinterestBoardId;
 
+    @Value("${meshada.app.url:https://www.meshada.com}")
+    private String appUrl;
+
     public SocialPublisherService(WebClient.Builder webClientBuilder, 
                                  SocialCredentialsRepository credentialsRepository,
                                  UGCVideoRepository videoRepository) {
         this.webClient = webClientBuilder.build();
         this.credentialsRepository = credentialsRepository;
         this.videoRepository = videoRepository;
+    }
+
+    private String resolveAbsoluteUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url;
+        }
+        String cleanUrl = url.startsWith("/") ? url.substring(1) : url;
+        String cleanBase = appUrl.endsWith("/") ? appUrl : appUrl + "/";
+        return cleanBase + cleanUrl;
     }
 
     /**
@@ -60,20 +75,23 @@ public class SocialPublisherService {
         log.info("[Social Publisher] Starting auto-publishing workflow for video ID: {} ({})", 
                 video.getId(), video.getItemName());
 
+        String absoluteVideoUrl = resolveAbsoluteUrl(video.getUrl());
+        String absoluteVtonImageUrl = resolveAbsoluteUrl(video.getVtonImageUrl());
+
         boolean instagramSuccess = false;
         boolean pinterestSuccess = false;
 
         // 1. Post to Instagram Reels
         try {
-            instagramSuccess = publishToInstagramReels(video.getUrl(), caption);
+            instagramSuccess = publishToInstagramReels(absoluteVideoUrl, caption);
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Instagram: {}", e.getMessage());
         }
 
         // 2. Post to Twitter/X
-        if (video.getUrl() != null && !video.getUrl().isEmpty()) {
+        if (absoluteVideoUrl != null && !absoluteVideoUrl.isEmpty()) {
             try {
-                publishToTwitter(video.getUrl(), caption);
+                publishToTwitter(absoluteVideoUrl, caption);
             } catch (Exception e) {
                 log.error("[Social Publisher] Failed to publish to Twitter/X: {}", e.getMessage());
             }
@@ -82,9 +100,9 @@ public class SocialPublisherService {
         }
  
         // 3. Post to TikTok
-        if (video.getUrl() != null && !video.getUrl().isEmpty()) {
+        if (absoluteVideoUrl != null && !absoluteVideoUrl.isEmpty()) {
             try {
-                publishToTikTok(video.getUrl(), caption);
+                publishToTikTok(absoluteVideoUrl, caption);
             } catch (Exception e) {
                 log.error("[Social Publisher] Failed to publish to TikTok: {}", e.getMessage());
             }
@@ -94,7 +112,7 @@ public class SocialPublisherService {
  
         // 4. Post to Pinterest
         try {
-            pinterestSuccess = publishToPinterest(video.getUrl(), video.getItemName(), caption, video.getAffiliateLink(), video.getVtonImageUrl());
+            pinterestSuccess = publishToPinterest(absoluteVideoUrl, video.getItemName(), caption, video.getAffiliateLink(), absoluteVtonImageUrl);
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage(), e);
         }
