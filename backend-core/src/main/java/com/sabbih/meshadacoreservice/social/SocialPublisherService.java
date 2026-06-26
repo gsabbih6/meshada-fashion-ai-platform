@@ -87,12 +87,12 @@ public class SocialPublisherService {
         String absoluteVideoUrl = resolveAbsoluteUrl(video.getUrl());
         String absoluteVtonImageUrl = resolveAbsoluteUrl(video.getVtonImageUrl());
 
-        boolean instagramSuccess = false;
+        String instagramPostId = null;
         boolean pinterestSuccess = false;
 
         // 1. Post to Instagram Reels
         try {
-            instagramSuccess = publishToInstagramReels(absoluteVideoUrl, instagramCaption);
+            instagramPostId = publishToInstagramReels(absoluteVideoUrl, instagramCaption);
         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
             log.error("[Social Publisher] Failed to publish to Instagram: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
         } catch (Exception e) {
@@ -131,8 +131,11 @@ public class SocialPublisherService {
         }
  
         // Save publication state if at least one main platform succeeded
-        if (instagramSuccess || pinterestSuccess) {
+        if (instagramPostId != null || pinterestSuccess) {
             video.setPublished(true);
+            if (instagramPostId != null) {
+                video.setInstagramPostId(instagramPostId);
+            }
             videoRepository.save(video);
             log.info("[Social Publisher] Successfully marked video ID: {} as published in database.", video.getId());
         }
@@ -145,7 +148,7 @@ public class SocialPublisherService {
      * 2. Poll /v19.0/{creationId} for status_code == FINISHED
      * 3. POST /v19.0/{businessAccountId}/media_publish?creation_id={creationId}
      */
-    private boolean publishToInstagramReels(String videoUrl, String caption) {
+    private String publishToInstagramReels(String videoUrl, String caption) {
         String pageToken = instagramPageAccessToken;
         String bizAccountId = instagramBusinessAccountId;
  
@@ -164,12 +167,12 @@ public class SocialPublisherService {
         if (pageToken == null || pageToken.isEmpty() ||
                 bizAccountId == null || bizAccountId.isEmpty()) {
             log.warn("[Instagram Publisher] Credentials not configured. Reels publishing skipped.");
-            return false;
+            return null;
         }
  
         if (videoUrl == null || videoUrl.isEmpty()) {
             log.warn("[Instagram Publisher] Video URL is empty. Reels publishing skipped.");
-            return false;
+            return null;
         }
  
         log.info("[Instagram Publisher] Creating Reels media container for business account: {} with video URL: {}", bizAccountId, videoUrl);
@@ -181,7 +184,7 @@ public class SocialPublisherService {
         requestBody.put("video_url", videoUrl);
         requestBody.put("caption", caption);
         requestBody.put("access_token", finalPageToken);
-
+ 
         Map response = webClient.post()
                 .uri(mediaUrl)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -193,7 +196,7 @@ public class SocialPublisherService {
  
         if (response == null || !response.containsKey("id")) {
             log.error("[Instagram Publisher] Failed to create Reels container. Response: {}", response);
-            return false;
+            return null;
         }
  
         String creationId = response.get("id").toString();
@@ -209,7 +212,7 @@ public class SocialPublisherService {
                 Thread.sleep(10000); // Wait 10 seconds between checks
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-                return false;
+                return null;
             }
  
             URI checkUri = UriComponentsBuilder.fromHttpUrl(statusCheckUrl)
@@ -232,7 +235,7 @@ public class SocialPublisherService {
                     finished = true;
                 } else if ("ERROR".equalsIgnoreCase(statusCode)) {
                     log.error("[Instagram Publisher] Reels processing finished with ERROR: {}", statusResponse);
-                    return false;
+                    return null;
                 }
             }
             attempts++;
@@ -240,7 +243,7 @@ public class SocialPublisherService {
  
         if (!finished) {
             log.error("[Instagram Publisher] Reels processing timed out on Meta's server.");
-            return false;
+            return null;
         }
  
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
@@ -249,7 +252,7 @@ public class SocialPublisherService {
         Map<String, Object> publishBody = new java.util.HashMap<>();
         publishBody.put("creation_id", creationId);
         publishBody.put("access_token", finalPageToken);
-
+ 
         Map publishResponse = webClient.post()
                 .uri(publishUrl)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -260,11 +263,12 @@ public class SocialPublisherService {
                 .block();
  
         if (publishResponse != null && publishResponse.containsKey("id")) {
-            log.info("[Instagram Publisher] Reels published successfully! Post ID: {}", publishResponse.get("id"));
-            return true;
+            String postId = publishResponse.get("id").toString();
+            log.info("[Instagram Publisher] Reels published successfully! Post ID: {}", postId);
+            return postId;
         } else {
             log.error("[Instagram Publisher] Failed to publish Reels: {}", publishResponse);
-            return false;
+            return null;
         }
     }
  

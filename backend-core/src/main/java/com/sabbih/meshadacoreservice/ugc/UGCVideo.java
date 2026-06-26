@@ -37,5 +37,7 @@ public class UGCVideo {
 
     @Builder.Default
     private Boolean published = false;
+
+    private String instagramPostId;
 }
 

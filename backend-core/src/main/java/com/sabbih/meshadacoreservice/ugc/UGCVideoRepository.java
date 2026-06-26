@@ -18,4 +18,6 @@ public interface UGCVideoRepository extends JpaRepository<UGCVideo, Long> {
 
     @Query("SELECT v FROM UGCVideo v WHERE v.url LIKE '%.mp4' AND v.url NOT LIKE '%w3schools%' AND (v.published IS NULL OR v.published = false)")
     List<UGCVideo> findUnpublishedVideos();
+
+    java.util.Optional<UGCVideo> findByInstagramPostId(String instagramPostId);
 }

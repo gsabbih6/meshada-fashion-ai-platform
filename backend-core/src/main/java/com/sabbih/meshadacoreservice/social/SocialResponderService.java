@@ -53,7 +53,7 @@ public class SocialResponderService {
         }
 
         // Find the most relevant product to link
-        String productLink = findBestProductLink(commentText);
+        String productLink = findBestProductLink(platform, postId, commentText);
 
         // Generate AI reply (Instagram gets a DM invitation reply, others get public link)
         String reply;
@@ -95,7 +95,19 @@ public class SocialResponderService {
     /**
      * Find the best product link based on comment keywords.
      */
-    private String findBestProductLink(String commentText) {
+    private String findBestProductLink(String platform, String postId, String commentText) {
+        // 1. If it's Instagram, try exact match by post ID first
+        if ("instagram".equalsIgnoreCase(platform) && postId != null && !postId.isEmpty()) {
+            java.util.Optional<UGCVideo> videoOpt = videoRepository.findByInstagramPostId(postId);
+            if (videoOpt.isPresent()) {
+                UGCVideo video = videoOpt.get();
+                if (video.getAffiliateLink() != null && !video.getAffiliateLink().isEmpty()) {
+                    log.info("Found exact video match by instagramPostId: {} -> {}", postId, video.getAffiliateLink());
+                    return video.getAffiliateLink();
+                }
+            }
+        }
+
         String lower = commentText.toLowerCase();
         List<UGCVideo> videos = videoRepository.findAllByOrderByCreatedAtDesc();
 
