@@ -52,15 +52,11 @@ public class SocialPlatformClient {
 
         try {
             log.info("[Instagram Client] Sending auto-reply to comment ID: {}", commentId);
-            String url = "https://graph.facebook.com/v19.0/" + commentId + "/replies";
+            String url = "https://graph.facebook.com/v19.0/" + commentId + "/replies?message={message}&access_token={token}";
             final String finalPageToken = pageToken;
 
-            Map<String, String> response = webClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(url)
-                            .queryParam("message", message)
-                            .queryParam("access_token", finalPageToken)
-                            .build())
+            Map response = webClient.post()
+                    .uri(url, message, finalPageToken)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(Map.class)
@@ -97,15 +93,11 @@ public class SocialPlatformClient {
 
         try {
             log.info("[Instagram Client] Sending private DM to comment ID: {}", commentId);
-            String url = "https://graph.facebook.com/v19.0/" + commentId + "/private_replies";
+            String url = "https://graph.facebook.com/v19.0/" + commentId + "/private_replies?message={message}&access_token={token}";
             final String finalPageToken = pageToken;
 
             Map response = webClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(url)
-                            .queryParam("message", message)
-                            .queryParam("access_token", finalPageToken)
-                            .build())
+                    .uri(url, message, finalPageToken)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(Map.class)
