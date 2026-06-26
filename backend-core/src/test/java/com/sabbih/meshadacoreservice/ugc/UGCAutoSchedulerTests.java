@@ -1,5 +1,6 @@
 package com.sabbih.meshadacoreservice.ugc;
 
+import com.sabbih.meshadacoreservice.products.ProductFeedService;
 import com.sabbih.meshadacoreservice.social.SocialPublisherService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ class UGCAutoSchedulerTests {
     private UGCVideoRepository videoRepository;
     private UGCEngineService ugcEngineService;
     private SocialPublisherService socialPublisherService;
+    private ProductFeedService productFeedService;
     private UGCAutoSchedulerService schedulerService;
 
     @BeforeEach
@@ -23,7 +25,8 @@ class UGCAutoSchedulerTests {
         videoRepository = mock(UGCVideoRepository.class);
         ugcEngineService = mock(UGCEngineService.class);
         socialPublisherService = mock(SocialPublisherService.class);
-        schedulerService = new UGCAutoSchedulerService(videoRepository, ugcEngineService, socialPublisherService);
+        productFeedService = mock(ProductFeedService.class);
+        schedulerService = new UGCAutoSchedulerService(videoRepository, ugcEngineService, socialPublisherService, productFeedService);
     }
 
     @Test

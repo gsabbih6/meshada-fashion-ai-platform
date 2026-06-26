@@ -1,5 +1,6 @@
 package com.sabbih.meshadacoreservice.ugc;
 
+import com.sabbih.meshadacoreservice.products.ProductFeedService;
 import com.sabbih.meshadacoreservice.social.SocialPublisherService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,15 +17,18 @@ public class UGCAutoSchedulerService {
     private final UGCVideoRepository videoRepository;
     private final UGCEngineService ugcEngineService;
     private final SocialPublisherService socialPublisherService;
+    private final ProductFeedService productFeedService;
     private final Random random = new Random();
 
     @Autowired
     public UGCAutoSchedulerService(UGCVideoRepository videoRepository,
                                    UGCEngineService ugcEngineService,
-                                   SocialPublisherService socialPublisherService) {
+                                   SocialPublisherService socialPublisherService,
+                                   ProductFeedService productFeedService) {
         this.videoRepository = videoRepository;
         this.ugcEngineService = ugcEngineService;
         this.socialPublisherService = socialPublisherService;
+        this.productFeedService = productFeedService;
     }
 
     /**
@@ -43,6 +47,14 @@ public class UGCAutoSchedulerService {
                     videoToPublish.getItemName(), videoToPublish.getId());
             socialPublisherService.publishVideoToSocial(videoToPublish);
             return;
+        }
+
+        // 1.5 Auto-fetch new products from Pepperjam so we have real affiliate links
+        try {
+            log.info("[UGC Scheduler] Fetching latest products from Pepperjam before generating video...");
+            productFeedService.fetchPepperjamProducts("7942");
+        } catch (Exception e) {
+            log.warn("[UGC Scheduler] Failed to fetch latest products from Pepperjam, proceeding with existing database items.", e);
         }
 
         // 2. Fetch all placeholders that do not have generated videos yet
