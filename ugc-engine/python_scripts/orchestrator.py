@@ -661,7 +661,7 @@ def assemble_ugc_video(
                 pass
                 
         # Generate Voiceover
-        voiceover_file = f"output_assets/temp_{product_id}_{model_name}_voiceover.mp3"
+        voiceover_file = get_absolute_path(f"output_assets/temp_{product_id}_{model_name}_voiceover.mp3")
         voiceover_ok = generate_voiceover(script, model_name, voiceover_file)
         
         # Apply Lip-Sync (Sync.so) if API key exists
