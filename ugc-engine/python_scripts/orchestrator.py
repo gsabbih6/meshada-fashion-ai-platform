@@ -1101,9 +1101,7 @@ def run_ugc_pipeline(
     has_higgsfield = bool(os.getenv("HF_KEY") or (os.getenv("HF_API_KEY") and os.getenv("HF_API_SECRET"))) and HAS_HIGGSFIELD
 
     if not has_eachlabs and not has_higgsfield:
-        print("[WARN] No API credentials set. Returning mock data.")
-        print("[WARN] Set EACHLABS_API_KEY for VTON or HF_KEY for Higgsfield.")
-        return _mock_outputs(product_id, product_name, model_id_filter)
+        raise ValueError("No API credentials set. Please configure EACHLABS_API_KEY or HF_KEY/HF_API_KEY/HF_API_SECRET in the environment.")
 
     # Hybrid configuration logic
     img_backend = "eachlabs" if has_eachlabs else "higgsfield"
@@ -1354,8 +1352,7 @@ def run_ugc_pipeline(
             })
 
     if not final_outputs or all(o.get("status") == "failed" for o in final_outputs):
-        print("\n[FALLBACK] All models failed. Returning mock data.")
-        return _mock_outputs(product_id, product_name, model_id_filter)
+        raise RuntimeError(f"All models failed to generate video. Details: {final_outputs}")
 
     # Clear in-flight state now that everything successfully generated
     clear_in_flight_state(product_id)
@@ -1363,49 +1360,7 @@ def run_ugc_pipeline(
     return final_outputs
 
 
-def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = None) -> list:
-    """Fallback mock data when APIs are unavailable."""
-    mocks = [
-        {
-            "model_id": "model_1", "model_name": "Aria", "style": "editorial",
-            "vton_image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400",
-            "storyboard_images": [
-                "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400",
-                "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400",
-                "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400"
-            ],
-            "script": f"Obsessed with this {product_name}. The fit is absolutely flawless.",
-            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            "backend": "test_mode", "status": "mock",
-        },
-        {
-            "model_id": "model_2", "model_name": "Luna", "style": "streetwear",
-            "vton_image": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400",
-            "storyboard_images": [
-                "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400",
-                "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=400",
-                "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400"
-            ],
-            "script": f"Streetwear essential unlocked 🔥 This {product_name} is everything.",
-            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            "backend": "test_mode", "status": "mock",
-        },
-        {
-            "model_id": "model_3", "model_name": "Nova", "style": "casual",
-            "vton_image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400",
-            "storyboard_images": [
-                "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400",
-                "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=400",
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400"
-            ],
-            "script": f"Hey! I just found the cutest {product_name} ever. Link in bio! 💕",
-            "final_video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            "backend": "test_mode", "status": "mock",
-        },
-    ]
-    if model_id_filter:
-        mocks = [m for m in mocks if m["model_id"] == model_id_filter]
-    return mocks
+
 
 
 if __name__ == "__main__":
