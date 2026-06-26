@@ -69,8 +69,17 @@ public class SocialPublisherService {
      */
     @Async
     public void publishVideoToSocial(UGCVideo video) {
-        String caption = String.format("Obsessed with this %s! 💅 Styled by AI Model %s. Shop the look here: %s",
+        String instagramCaption = String.format("Obsessed with this %s! 💅 Styled by AI Model %s. Comment \"FIT\" and I'll DM you the link!",
+                video.getItemName(), video.getModelName());
+        
+        String twitterCaption = String.format("Obsessed with this %s! 💅 Styled by AI Model %s. Shop the look here: %s",
                 video.getItemName(), video.getModelName(), video.getAffiliateLink());
+
+        String tiktokCaption = String.format("Obsessed with this %s! 💅 Styled by AI Model %s. Link in bio!",
+                video.getItemName(), video.getModelName());
+
+        String pinterestDescription = String.format("Obsessed with this %s! Styled by AI Model %s.",
+                video.getItemName(), video.getModelName());
         
         log.info("[Social Publisher] Starting auto-publishing workflow for video ID: {} ({})", 
                 video.getId(), video.getItemName());
@@ -83,7 +92,7 @@ public class SocialPublisherService {
 
         // 1. Post to Instagram Reels
         try {
-            instagramSuccess = publishToInstagramReels(absoluteVideoUrl, caption);
+            instagramSuccess = publishToInstagramReels(absoluteVideoUrl, instagramCaption);
         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
             log.error("[Social Publisher] Failed to publish to Instagram: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
         } catch (Exception e) {
@@ -93,7 +102,7 @@ public class SocialPublisherService {
         // 2. Post to Twitter/X
         if (absoluteVideoUrl != null && !absoluteVideoUrl.isEmpty()) {
             try {
-                publishToTwitter(absoluteVideoUrl, caption);
+                publishToTwitter(absoluteVideoUrl, twitterCaption);
             } catch (Exception e) {
                 log.error("[Social Publisher] Failed to publish to Twitter/X: {}", e.getMessage());
             }
@@ -104,7 +113,7 @@ public class SocialPublisherService {
         // 3. Post to TikTok
         if (absoluteVideoUrl != null && !absoluteVideoUrl.isEmpty()) {
             try {
-                publishToTikTok(absoluteVideoUrl, caption);
+                publishToTikTok(absoluteVideoUrl, tiktokCaption);
             } catch (Exception e) {
                 log.error("[Social Publisher] Failed to publish to TikTok: {}", e.getMessage());
             }
@@ -114,7 +123,7 @@ public class SocialPublisherService {
  
         // 4. Post to Pinterest
         try {
-            pinterestSuccess = publishToPinterest(absoluteVideoUrl, video.getItemName(), caption, video.getAffiliateLink(), absoluteVtonImageUrl);
+            pinterestSuccess = publishToPinterest(absoluteVideoUrl, video.getItemName(), pinterestDescription, video.getAffiliateLink(), absoluteVtonImageUrl);
         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
             log.error("[Social Publisher] Failed to publish to Pinterest: {} - Response: {}", e.getMessage(), e.getResponseBodyAsString());
         } catch (Exception e) {
