@@ -163,7 +163,7 @@ public class SocialPublisherService {
             return false;
         }
  
-        log.info("[Instagram Publisher] Creating Reels media container...");
+        log.info("[Instagram Publisher] Creating Reels media container for business account: {} with video URL: {}", bizAccountId, videoUrl);
         String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
         final String finalPageToken = pageToken;
  
@@ -344,7 +344,6 @@ public class SocialPublisherService {
             return false;
         }
  
-        log.info("[Pinterest Publisher] Creating Pin on board: {}", pinterestBoardId);
         String url = "https://api.pinterest.com/v5/pins";
  
         // Since Pinterest requires direct video file binary upload to S3 for video Pins,
@@ -356,6 +355,7 @@ public class SocialPublisherService {
             finalUrl = "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"; // fallback
         }
         mediaSource.put("url", finalUrl);
+        log.info("[Pinterest Publisher] Creating Pin on board: {} using media URL: {}", pinterestBoardId, finalUrl);
  
         Map<String, Object> requestBody = new java.util.HashMap<>();
         requestBody.put("board_id", pinterestBoardId);
