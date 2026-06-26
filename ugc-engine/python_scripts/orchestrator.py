@@ -997,10 +997,19 @@ def video_eachlabs(image_url: str, motion_prompt: str, duration: int = 5, existi
     """Generate runway video using EachLabs Pixverse."""
     print(f"  → Video generation via EachLabs ({EACHLABS_VIDEO_MODEL})...")
 
+    # Map duration to valid EachLabs enum values ("5", "8", "10")
+    if duration <= 5:
+        eachlabs_dur = "5"
+    elif duration <= 8:
+        eachlabs_dur = "8"
+    else:
+        eachlabs_dur = "10"
+
     result = _eachlabs_predict(EACHLABS_VIDEO_MODEL, {
         "image_url": image_url,
         "prompt": motion_prompt,
-        "duration": str(duration),
+        "duration": eachlabs_dur,
+        "quality": "1080p",
         "resolution": "1080p",
     }, existing_task_id, on_task_started)
 
