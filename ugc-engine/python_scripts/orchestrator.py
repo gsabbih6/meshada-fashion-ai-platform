@@ -30,6 +30,12 @@ import random
 from dotenv import load_dotenv
 load_dotenv()
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_absolute_path(relative_path: str) -> str:
+    """Resolve a path relative to the script's directory, ensuring it is absolute."""
+    return os.path.abspath(os.path.join(SCRIPT_DIR, relative_path))
+
 # Dynamically resolve FFmpeg binary path
 FFMPEG_BIN = os.getenv("FFMPEG_PATH") or shutil.which("ffmpeg") or "ffmpeg"
 
@@ -859,7 +865,7 @@ def generate_video_script(product_name: str, model_name: str, style_dir: str = "
 # ─── Mid-Flight State Management ────────────────────────────────────────────────
 
 def get_state_path(product_id: str) -> str:
-    return os.path.join("output_assets", f"in_flight_{product_id}.json")
+    return get_absolute_path(os.path.join("output_assets", f"in_flight_{product_id}.json"))
 
 def load_in_flight_state(product_id: str) -> dict:
     path = get_state_path(product_id)
@@ -1114,9 +1120,9 @@ def run_ugc_pipeline(
     print(f"{'='*60}")
 
     # Ensure output directory exists
-    os.makedirs("output_assets", exist_ok=True)
+    os.makedirs(get_absolute_path("output_assets"), exist_ok=True)
  
-    cache_path = os.path.join("output_assets", f"cache_{product_id}.json")
+    cache_path = get_absolute_path(os.path.join("output_assets", f"cache_{product_id}.json"))
     cache_data = {}
     if os.path.exists(cache_path):
         try:
@@ -1141,7 +1147,7 @@ def run_ugc_pipeline(
             else:
                 bgm_filename = f"bgm_{hashlib.md5(bgm_url.encode()).hexdigest()}.mp3"
         
-        bgm_path = os.path.join("output_assets", bgm_filename)
+        bgm_path = get_absolute_path(os.path.join("output_assets", bgm_filename))
         if not os.path.exists(bgm_path):
             print(f"  → Downloading background music from {bgm_url[:60]}...")
             if not download_file(bgm_url, bgm_path):
@@ -1263,7 +1269,7 @@ def run_ugc_pipeline(
             clip_paths = []
             
             # Ensure output directory exists
-            os.makedirs("output_assets", exist_ok=True)
+            os.makedirs(get_absolute_path("output_assets"), exist_ok=True)
             
             success_count = 0
             for idx, sc in enumerate(scenes):
@@ -1294,7 +1300,7 @@ def run_ugc_pipeline(
                 if scene_video_url:
                     print(f"    ✓ Scene {idx+1} video URL: {scene_video_url[:80]}...")
                     # Download the clip locally
-                    clip_file = f"output_assets/temp_{product_id}_{model_name}_scene_{idx+1}.mp4"
+                    clip_file = get_absolute_path(f"output_assets/temp_{product_id}_{model_name}_scene_{idx+1}.mp4")
                     if download_file(scene_video_url, clip_file):
                         clip_paths.append(clip_file)
                         success_count += 1
@@ -1303,7 +1309,7 @@ def run_ugc_pipeline(
             
 
             # Assemble the final video (stitch, voiceover, and bgm mix)
-            final_video_file = f"output_assets/prod_{product_id}_{model_name}_final.mp4"
+            final_video_file = get_absolute_path(f"output_assets/prod_{product_id}_{model_name}_final.mp4")
             video_url, status, error = assemble_ugc_video(
                 product_id=product_id,
                 model_name=model_name,
@@ -1316,15 +1322,23 @@ def run_ugc_pipeline(
                 vton_image_url=vton_image_url
             )
             
+            # Convert absolute paths to relative paths starting with 'output_assets/' for returned JSON
+            rel_video_url = video_url
+            if video_url and not video_url.startswith("http"):
+                rel_video_url = os.path.relpath(video_url, SCRIPT_DIR)
+            rel_vton_image = vton_image_url
+            if vton_image_url and not vton_image_url.startswith("http"):
+                rel_vton_image = os.path.relpath(vton_image_url, SCRIPT_DIR)
+
             final_outputs.append({
                 "model_id": model_id,
                 "model_name": model_name,
                 "style": style_dir,
-                "vton_image": vton_image_url,
+                "vton_image": rel_vton_image,
                 "storyboard_images": storyboard_images,
                 "script": script,
                 "storyboard_panels": len(scenes),
-                "final_video_url": video_url,
+                "final_video_url": rel_video_url,
                 "backend": combined_backend,
                 "status": status,
                 **({"error": error} if error else {})
