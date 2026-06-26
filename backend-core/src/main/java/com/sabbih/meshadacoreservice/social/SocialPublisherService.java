@@ -382,7 +382,7 @@ public class SocialPublisherService {
                 return false;
             }
         } catch (Exception e) {
-            log.error("[Pinterest Publisher] Failed to create Pin: {}", e.getMessage(), e);
+            log.error("[Pinterest Publisher] Failed to create Pin: {}", e.getMessage());
             return false;
         }
     }
