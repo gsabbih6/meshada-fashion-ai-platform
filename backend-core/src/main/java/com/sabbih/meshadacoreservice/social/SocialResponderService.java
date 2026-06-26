@@ -40,6 +40,12 @@ public class SocialResponderService {
     public SocialComment processIncomingComment(String platform, String commentId,
                                                   String postId, String username,
                                                   String commentText) {
+        // Do not respond to our own comments/replies to prevent infinite feedback loops
+        if (username != null && "meshadafashion".equalsIgnoreCase(username.trim())) {
+            log.info("Ignoring comment from self/bot username: {}", username);
+            return null;
+        }
+
         // Deduplicate
         if (commentRepository.existsByCommentIdAndPlatform(commentId, platform)) {
             log.info("Duplicate comment ignored: {} on {}", commentId, platform);

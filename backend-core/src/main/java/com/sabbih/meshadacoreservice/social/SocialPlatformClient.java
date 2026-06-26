@@ -93,18 +93,43 @@ public class SocialPlatformClient {
 
         try {
             log.info("[Instagram Client] Sending private DM to comment ID: {}", commentId);
-            String url = "https://graph.facebook.com/v19.0/" + commentId + "/private_replies?message={message}&access_token={token}";
+            
+            // 1. Fetch the Page ID dynamically via /me endpoint using the Page Access Token
+            String meUrl = "https://graph.facebook.com/v19.0/me?access_token={token}";
             final String finalPageToken = pageToken;
+            
+            Map meResponse = webClient.get()
+                    .uri(meUrl, finalPageToken)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+                    
+            if (meResponse == null || !meResponse.containsKey("id")) {
+                log.error("[Instagram Client] Failed to retrieve Page ID via /me endpoint.");
+                return false;
+            }
+            
+            String pageId = (String) meResponse.get("id");
+            
+            // 2. Post DM via Messaging API: POST /v19.0/{page-id}/messages
+            String url = "https://graph.facebook.com/v19.0/" + pageId + "/messages?access_token={token}";
+            Map<String, Object> requestBody = Map.of(
+                    "recipient", Map.of("comment_id", commentId),
+                    "message", Map.of("text", message)
+            );
 
             Map response = webClient.post()
-                    .uri(url, message, finalPageToken)
+                    .uri(url, finalPageToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
-            if (response != null && response.containsKey("id")) {
-                log.info("[Instagram Client] Private DM sent successfully. Response ID: {}", response.get("id"));
+            if (response != null && (response.containsKey("message_id") || response.containsKey("recipient_id") || response.containsKey("id"))) {
+                log.info("[Instagram Client] Private DM sent successfully.");
                 return true;
             }
             log.warn("[Instagram Client] Received unexpected private DM response: {}", response);
