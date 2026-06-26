@@ -1178,6 +1178,7 @@ def run_ugc_pipeline(
         model_cache = cache_data.get(model_id, {})
         cached_vton = model_cache.get("vton_image")
         cached_storyboard = model_cache.get("storyboard_images", [])
+        in_flight = load_in_flight_state(product_id).get(model_id, {})
  
         try:
             # ── Step 1: Generate model image (VTON or text-to-image) ──
