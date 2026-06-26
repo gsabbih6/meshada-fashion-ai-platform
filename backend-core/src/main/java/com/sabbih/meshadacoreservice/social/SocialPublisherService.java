@@ -167,16 +167,16 @@ public class SocialPublisherService {
         String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
         final String finalPageToken = pageToken;
  
-        URI targetUri = UriComponentsBuilder.fromHttpUrl(mediaUrl)
-                .queryParam("media_type", "REELS")
-                .queryParam("video_url", videoUrl)
-                .queryParam("caption", caption)
-                .queryParam("access_token", finalPageToken)
-                .build()
-                .toUri();
- 
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("media_type", "REELS");
+        requestBody.put("video_url", videoUrl);
+        requestBody.put("caption", caption);
+        requestBody.put("access_token", finalPageToken);
+
         Map response = webClient.post()
-                .uri(targetUri)
+                .uri(mediaUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -237,14 +237,14 @@ public class SocialPublisherService {
         log.info("[Instagram Publisher] Container ready. Publishing Reels...");
         String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
  
-        URI publishTargetUri = UriComponentsBuilder.fromHttpUrl(publishUrl)
-                .queryParam("creation_id", creationId)
-                .queryParam("access_token", finalPageToken)
-                .build()
-                .toUri();
- 
+        Map<String, Object> publishBody = new java.util.HashMap<>();
+        publishBody.put("creation_id", creationId);
+        publishBody.put("access_token", finalPageToken);
+
         Map publishResponse = webClient.post()
-                .uri(publishTargetUri)
+                .uri(publishUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(publishBody)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -338,8 +338,23 @@ public class SocialPublisherService {
      * Pinterest API v5: POST https://api.pinterest.com/v5/pins
      */
     private boolean publishToPinterest(String mediaUrl, String title, String description, String link, String coverImageUrl) {
-        if (pinterestAccessToken == null || pinterestAccessToken.isEmpty() ||
-                pinterestBoardId == null || pinterestBoardId.isEmpty()) {
+        String token = pinterestAccessToken;
+        String boardId = pinterestBoardId;
+
+        // Dynamic lookup from database
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("pinterest");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            if (creds.getAccessToken() != null && !creds.getAccessToken().isEmpty()) {
+                token = creds.getAccessToken();
+            }
+            if (creds.getBusinessAccountId() != null && !creds.getBusinessAccountId().isEmpty()) {
+                boardId = creds.getBusinessAccountId();
+            }
+        }
+
+        if (token == null || token.isEmpty() ||
+                boardId == null || boardId.isEmpty()) {
             log.warn("[Pinterest Publisher] Access Token or Board ID not configured. Pinterest publishing skipped.");
             return false;
         }
@@ -355,10 +370,10 @@ public class SocialPublisherService {
             finalUrl = "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"; // fallback
         }
         mediaSource.put("url", finalUrl);
-        log.info("[Pinterest Publisher] Creating Pin on board: {} using media URL: {}", pinterestBoardId, finalUrl);
+        log.info("[Pinterest Publisher] Creating Pin on board: {} using media URL: {}", boardId, finalUrl);
  
         Map<String, Object> requestBody = new java.util.HashMap<>();
-        requestBody.put("board_id", pinterestBoardId);
+        requestBody.put("board_id", boardId);
         requestBody.put("title", title != null ? title : "Styled by Meshada");
         if (description != null) {
             requestBody.put("description", description);
@@ -367,17 +382,17 @@ public class SocialPublisherService {
             requestBody.put("link", link);
         }
         requestBody.put("media_source", mediaSource);
-
+ 
         try {
             Map response = webClient.post()
                     .uri(url)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + pinterestAccessToken)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
-
+ 
             if (response != null && response.containsKey("id")) {
                 log.info("[Pinterest Publisher] Pin created successfully! Pin ID: {}", response.get("id"));
                 return true;

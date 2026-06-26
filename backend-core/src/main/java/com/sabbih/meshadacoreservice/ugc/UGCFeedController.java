@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
  
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,9 @@ import java.util.concurrent.Executor;
 @RestController
 @RequestMapping("/api/v1/ugc")
 public class UGCFeedController {
+ 
+    @Value("${meshada.app.url:https://www.meshada.com}")
+    private String appUrl;
  
     private final UGCVideoRepository videoRepository;
     private final UGCEngineService ugcEngineService;
@@ -78,5 +82,13 @@ public class UGCFeedController {
             socialPublisherService.publishVideoToSocial(videoOpt.get());
         });
         return ResponseEntity.ok("UGC Video publication started in the background for ID: " + id);
+    }
+
+    @GetMapping("/debug-config")
+    public ResponseEntity<Map<String, String>> getDebugConfig() {
+        return ResponseEntity.ok(Map.of(
+            "MESHADA_APP_URL_env", System.getenv().getOrDefault("MESHADA_APP_URL", "not set"),
+            "appUrl_resolved", appUrl
+        ));
     }
 }
