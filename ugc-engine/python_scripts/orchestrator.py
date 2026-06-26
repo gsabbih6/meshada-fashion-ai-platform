@@ -139,7 +139,7 @@ AI_MODELS = {
     },
     "model_3": {
         "name": "Nova",
-        "style_direction": "casual",
+        "style_direction": "authentic_ugc",
         "human_image_url": "https://d3u0tzju9qaucj.cloudfront.net/0004fdf7-03ab-4d48-a4db-d8b39d40b6f2/6df52784-0ac1-421c-b558-534a4dadb85d.png",
         "demographics": {
             "origin": "East Asian (Korean features)",
@@ -150,29 +150,28 @@ AI_MODELS = {
         },
         "appearance": {
             "skin_tone": "Fair with neutral-cool undertones, dewy fresh complexion",
-            "hair": "Dark brown-black, soft waves, side-parted, face-framing layers",
+            "hair": "Dark brown-black, soft waves, side-parted, messy bun",
             "features": "Soft rounded features, bright eyes, natural smile lines",
-            "expression": "Genuine warm smile, approachable, like FaceTiming a friend",
-            "makeup": "Fresh minimal — dewy skin, soft blush, tinted lip balm, natural brows",
+            "expression": "Excited genuine smile, talking directly to camera, expressive eyebrows",
+            "makeup": "No-makeup makeup look, slightly glossy lips, natural glow",
         },
         "pose": (
-            "Relaxed casual stance leaning slightly against a warm-toned wall. "
-            "Right hand holding phone loosely, left hand gesturing naturally as if mid-sentence. "
-            "Weight on right leg, left knee bent casually. Head tilted with genuine smile, "
-            "looking directly at camera like sharing a secret with a friend."
+            "Selfie-style pose, left arm extended as if holding the phone camera. "
+            "Right hand gesturing animatedly while holding the garment to show it off. "
+            "Leaning slightly forward towards the lens, intimate and energetic."
         ),
-        "environment": "Warm cafe interior with golden hour light streaming through windows, wooden surfaces, potted plants, cozy lifestyle setting",
+        "environment": "Slightly messy Gen-Z bedroom, unmade bed in background, LED strip lights, clothing rack, cozy and lived-in aesthetic",
         "photography": {
-            "camera": "Mirrorless camera, lifestyle photography style",
-            "lens": "50mm for natural perspective",
-            "aperture": "f/2.8 for dreamy background blur",
-            "lighting": "Golden hour window light from right, warm color temperature, natural soft shadows",
-            "composition": "Medium shot, model centered, intimate framing, negative space above",
-            "angle": "Eye-level, straight-on, intimate and friendly",
+            "camera": "iPhone 15 Pro front-facing camera",
+            "lens": "Wide angle selfie perspective",
+            "aperture": "f/1.8 deep depth of field (smartphone style)",
+            "lighting": "Ring light reflecting in eyes, mixed with natural window light",
+            "composition": "Close-up selfie framing, slight distortion on edges, vertical 9:16",
+            "angle": "Slightly high angle, pointing down at model (classic selfie angle)",
         },
-        "mood": "Warm, approachable, genuine, lifestyle, relatable, inviting, best-friend energy",
-        "voice_style": "friendly, upbeat, relatable",
-        "motion_prompt": "Young woman in cozy setting turns to camera with genuine smile, holds up product naturally, warm golden hour lighting, lifestyle vlog aesthetic, gentle camera push-in",
+        "mood": "Authentic, raw, excited, viral TikTok haul energy, relatable, unfiltered",
+        "voice_style": "fast-talking, excited, casual",
+        "motion_prompt": "UGC TikTok haul video, young woman holding phone in selfie mode in her messy bedroom, talking excitedly to camera and gesturing with hands, ring light reflection, authentic smartphone video aesthetic",
     },
     "model_4": {
         "name": "Sasha",
@@ -297,7 +296,96 @@ SCENE_TEMPLATES = {
             {"name": "Outro", "duration": 3, "motion_prompt": "model laughs, waves goodbye to camera, cozy environment, soft golden hour lighting, handheld camera shake, realistic skin texture"}
         ]
     },
-    "curvy-chic": {
+    "authentic_ugc": {
+        "dress": [
+            {"name": "Mirror Selfie Hook", "duration": 2, "motion_prompt": "UGC TikTok selfie video, young woman holding phone up high, showing off dress fit in her bedroom mirror, excited facial expression, authentic smartphone video"},
+            {"name": "Bed Haul", "duration": 3, "motion_prompt": "UGC haul video, woman sitting on unmade bed, holding up the dress to the camera excitedly, pointing at fabric details, ring light lighting, raw iphone footage"},
+            {"name": "Full Spin", "duration": 3, "motion_prompt": "TikTok try-on video, woman steps back in her bedroom to show full dress, does a quick casual spin, smiling and talking to camera, messy room background"},
+            {"name": "Close Up Detail", "duration": 2, "motion_prompt": "UGC close up selfie video, woman showing the neckline of her dress, talking fast to the camera, messy room background, authentic TikTok style"},
+            {"name": "Package Open", "duration": 3, "motion_prompt": "TikTok unboxing, woman sitting on the floor pulling a dress out of a package, holding it up and gasping excitedly, raw smartphone footage"},
+            {"name": "Dance Fit", "duration": 3, "motion_prompt": "UGC try-on, woman doing a quick trendy TikTok dance in her bedroom wearing a new dress, laughing, casual relatable vibe"},
+            {"name": "Sitting Pose", "duration": 3, "motion_prompt": "UGC casual video, woman sitting on a bedroom chair wearing a new dress, talking animatedly with hand gestures to the phone camera, relatable energy"},
+            {"name": "Walking Hook", "duration": 2, "motion_prompt": "TikTok vlog, woman walking towards camera holding her phone, showing off how the dress flows when walking, happy expression"},
+            {"name": "Pocket Check", "duration": 2, "motion_prompt": "UGC video, woman excitedly showing that her dress has pockets, putting her hands in the pockets and smiling at the camera"},
+            {"name": "Coffee Run", "duration": 3, "motion_prompt": "TikTok lifestyle vlog, woman holding a coffee cup, taking a sip while showing off her dress fit in natural sunlight from her window"},
+            {"name": "Back Detail", "duration": 3, "motion_prompt": "UGC mirror selfie, woman turning to show the back cut-out of her dress, looking over her shoulder into the mirror, authentic iPhone footage"},
+            {"name": "Fabric Flow", "duration": 2, "motion_prompt": "Woman holding the hem of her dress and swishing it back and forth to show the fabric flow, smiling at the camera, messy bedroom"},
+            {"name": "Hanger Show", "duration": 2, "motion_prompt": "UGC unboxing, woman holding the dress on a hanger, pointing at the pattern, talking excitedly to the camera, ring light"},
+            {"name": "Try-On Jump", "duration": 2, "motion_prompt": "TikTok transition, woman holding dress, jumps and suddenly she is wearing it, laughing and showing off the fit, authentic smartphone video"},
+            {"name": "Adjusting Fit", "duration": 3, "motion_prompt": "UGC video, woman standing in front of mirror, adjusting the straps of her dress, talking to the camera casually like a FaceTime call"},
+            {"name": "Shoe Pairing", "duration": 3, "motion_prompt": "Woman sitting on bed, holding up a pair of shoes next to her new dress, asking the camera for styling advice, relatable haul video"},
+            {"name": "Candid Laugh", "duration": 2, "motion_prompt": "Close up selfie, woman laughing candidly while talking about her dress, hand covering her mouth slightly, genuine relatable expression"},
+            {"name": "Window Light", "duration": 3, "motion_prompt": "Woman standing by her bedroom window, natural light hitting the dress, turning slightly to show how it looks in the sun"},
+            {"name": "Quick Zoom", "duration": 2, "motion_prompt": "UGC comedy style, quick zoom into the woman's face as she hypes up the dress, chaotic fun energy, messy bedroom"},
+            {"name": "Outro Wave", "duration": 3, "motion_prompt": "UGC outro, woman waves goodbye to the camera, stepping back in her dress, blowing a kiss, authentic TikTok haul ending"}
+        ],
+        "outerwear": [
+            {"name": "Mirror Selfie", "duration": 2, "motion_prompt": "UGC mirror selfie video, woman showing off her new jacket, zipping it up excitedly, messy bedroom background, authentic iphone footage"},
+            {"name": "Bed Haul", "duration": 3, "motion_prompt": "TikTok haul video, woman holding up jacket to camera in her room, pointing at the pockets and texture, talking animatedly, ring light reflections"},
+            {"name": "Shoulder Drape", "duration": 3, "motion_prompt": "UGC try-on, woman puts on jacket over her shoulders in her bedroom, poses casually for the phone camera, smiles, relatable everyday vibe"},
+            {"name": "Close Up", "duration": 2, "motion_prompt": "UGC front-facing video, woman adjusting the collar of her jacket, smiling broadly at the camera, ring light in eyes, authentic TikTok aesthetic"},
+            {"name": "Package Open", "duration": 3, "motion_prompt": "TikTok unboxing, woman pulling a jacket from a shipping bag, throwing the bag aside and holding the jacket up with excitement, bedroom floor"},
+            {"name": "Full Spin", "duration": 3, "motion_prompt": "UGC try-on, woman steps back to show full jacket fit, turns around to show the back, looking over her shoulder at the camera, messy bedroom"},
+            {"name": "Zipper Check", "duration": 2, "motion_prompt": "UGC close up, woman demonstrating how smooth the jacket zipper is, zipping it up and down while talking to camera"},
+            {"name": "Hood Pull", "duration": 3, "motion_prompt": "TikTok vlog, woman pulling the jacket hood over her head, doing a cute pose, laughing at the camera, cozy bedroom setting"},
+            {"name": "Pocket Deep", "duration": 2, "motion_prompt": "Woman enthusiastically shoving her hands deep into the jacket pockets to show how big they are, excited facial expression"},
+            {"name": "Layering Show", "duration": 3, "motion_prompt": "UGC try-on, woman unzipping jacket to show how she layered it over a hoodie, casual streetwear styling video"},
+            {"name": "Walking Hook", "duration": 2, "motion_prompt": "Woman walking towards phone camera wearing an oversized jacket, confident stride, messy room background, authentic smartphone look"},
+            {"name": "Throw On", "duration": 2, "motion_prompt": "TikTok transition, woman throwing the jacket into the air and suddenly she is wearing it, striking a pose, fun energy"},
+            {"name": "Lining Detail", "duration": 2, "motion_prompt": "UGC video, woman opening the jacket to show the inner lining to the camera, pointing at the details, talking fast"},
+            {"name": "Cuff Check", "duration": 2, "motion_prompt": "Close up selfie, woman showing the sleeve cuffs of her new jacket, turning her wrist, casual review video"},
+            {"name": "Back Logo", "duration": 3, "motion_prompt": "Woman turning her back to the camera to show off the design on the back of the jacket, looking over her shoulder"},
+            {"name": "Cozy Hug", "duration": 3, "motion_prompt": "UGC lifestyle, woman wrapping her arms around herself to show how warm and cozy the jacket is, smiling happily"},
+            {"name": "Hanger Show", "duration": 2, "motion_prompt": "Woman holding the jacket on a hanger, pointing at it with her other hand, explaining why she bought it"},
+            {"name": "Window Light", "duration": 3, "motion_prompt": "Woman standing by her window showing how the jacket material looks in natural sunlight, authentic vlog style"},
+            {"name": "Quick Zoom", "duration": 2, "motion_prompt": "Chaotic UGC style, quick zoom on woman's face as she gasps about the jacket quality, funny relatable energy"},
+            {"name": "Outro Wave", "duration": 3, "motion_prompt": "UGC outro, woman fully zipped in her jacket, waves goodbye to the camera with a big smile, authentic TikTok ending"}
+        ],
+        "pants": [
+            {"name": "Mirror Selfie", "duration": 2, "motion_prompt": "UGC mirror selfie video, woman angling phone down to show off pants fit, turning hips side to side, casual bedroom setting, raw smartphone video"},
+            {"name": "Bed Haul", "duration": 3, "motion_prompt": "TikTok haul video, woman sitting cross-legged on bed, holding pants up to camera, stretching the waistband to show elasticity, excited expression"},
+            {"name": "Full Fit", "duration": 3, "motion_prompt": "UGC try-on video, woman stepping back in room to show full pants fit, hands in pockets, casual pose, talking to phone camera, relatable energy"},
+            {"name": "Close Up Waist", "duration": 2, "motion_prompt": "UGC close up, woman pointing to the high waist of her pants, talking to the camera to explain the fit, authentic smartphone video"},
+            {"name": "Package Open", "duration": 3, "motion_prompt": "TikTok unboxing, woman opening a package on her bed, pulling out pants and holding them up against her legs, smiling widely"},
+            {"name": "Dance Fit", "duration": 3, "motion_prompt": "UGC try-on, woman doing a quick hip-sway TikTok trend to show off pants fit, laughing at the camera, relatable and casual"},
+            {"name": "Squat Test", "duration": 3, "motion_prompt": "TikTok review, woman doing a quick squat to show that the pants are stretchy and comfortable, giving a thumbs up to the camera"},
+            {"name": "Walking Back", "duration": 3, "motion_prompt": "UGC try-on, woman walking away from the camera to show the back fit of the jeans, then turning around and smiling"},
+            {"name": "Shoe Styling", "duration": 3, "motion_prompt": "Woman pointing the camera down at her feet to show how the pants drape perfectly over her sneakers, street style vlog"},
+            {"name": "Pocket Check", "duration": 2, "motion_prompt": "Woman putting both hands in the front pockets of her pants, rocking back and forth on her heels, casual talking to camera"},
+            {"name": "Waist Stretch", "duration": 2, "motion_prompt": "Close up selfie, woman pulling the waistband away from her body to show the stretch, excited facial expression, messy room"},
+            {"name": "Sitting Check", "duration": 3, "motion_prompt": "UGC video, woman sitting down on her bed to show that the pants are still comfortable when seated, relatable review"},
+            {"name": "Hanger Show", "duration": 2, "motion_prompt": "Woman holding the pants up on a hanger, pointing at the wash and material, talking fast to the camera"},
+            {"name": "Jump Transition", "duration": 2, "motion_prompt": "TikTok transition, woman throws pants on the floor, jumps, and is suddenly wearing them, striking a cool pose"},
+            {"name": "Ankle Detail", "duration": 2, "motion_prompt": "Woman pointing the phone camera at the hem of her pants to show the crop/flare detail, authentic smartphone angle"},
+            {"name": "Side Profile", "duration": 3, "motion_prompt": "UGC mirror selfie, woman standing sideways to show the side profile of the pants fit, holding phone steady"},
+            {"name": "Candid Laugh", "duration": 2, "motion_prompt": "Close up selfie, woman laughing while explaining a funny story about buying the pants, genuine relatable expression"},
+            {"name": "Material Rub", "duration": 2, "motion_prompt": "Woman rubbing the fabric of the pants to show the texture to the camera, explaining how soft they are"},
+            {"name": "Quick Zoom", "duration": 2, "motion_prompt": "UGC comedy style, quick zoom into woman's face as she hypes up how good the pants make her look, fun energy"},
+            {"name": "Outro Wave", "duration": 3, "motion_prompt": "UGC outro, woman doing a casual salute or peace sign to the camera, full pants fit visible, authentic TikTok ending"}
+        ],
+        "tops": [
+            {"name": "Mirror Selfie", "duration": 2, "motion_prompt": "UGC front-facing selfie video, woman talking excitedly to camera, holding up a cute top, pointing at the neckline, messy bedroom, ring light"},
+            {"name": "Bed Haul", "duration": 3, "motion_prompt": "TikTok unboxing video, woman sitting on bed, pulling top out of package, holding it against her chest, huge smile, raw authentic iphone footage"},
+            {"name": "Full Fit", "duration": 3, "motion_prompt": "UGC try-on, woman standing in bedroom, adjusting the fit of her new top, looking into the phone camera like a mirror, casual everyday vibe"},
+            {"name": "Close Up", "duration": 2, "motion_prompt": "UGC close up selfie, woman tugging on the sleeve of her top to show the material, talking fast, authentic TikTok aesthetic, messy room"},
+            {"name": "Package Open", "duration": 3, "motion_prompt": "TikTok unboxing, woman sitting on floor tearing open a package, pulling out a top and showing it to the camera excitedly"},
+            {"name": "Dance Fit", "duration": 3, "motion_prompt": "UGC try-on, woman dancing casually in her bedroom to show off a new top, happy and energetic, authentic smartphone footage"},
+            {"name": "Neckline Check", "duration": 2, "motion_prompt": "Woman adjusting the neckline of the top, looking at the camera as if it's a mirror, checking her outfit"},
+            {"name": "Sleeve Roll", "duration": 3, "motion_prompt": "UGC video, woman rolling up the sleeves of her top, talking casually to the camera about styling it"},
+            {"name": "Tuck In", "duration": 3, "motion_prompt": "TikTok try-on, woman demonstrating how to do a french tuck with the new top into her jeans, smiling at the result"},
+            {"name": "Back Detail", "duration": 3, "motion_prompt": "UGC mirror selfie, woman turning to show the back of the top, looking over her shoulder, authentic smartphone aesthetic"},
+            {"name": "Sitting Pose", "duration": 3, "motion_prompt": "Woman sitting on her unmade bed, wearing the new top, talking animatedly to the camera with hand gestures like a FaceTime call"},
+            {"name": "Coffee Run", "duration": 3, "motion_prompt": "TikTok lifestyle vlog, woman holding a coffee cup, taking a sip while showing off her top in natural sunlight from her window"},
+            {"name": "Hanger Show", "duration": 2, "motion_prompt": "Woman holding the top on a hanger, pointing at the print/graphic, talking excitedly to the camera"},
+            {"name": "Try-On Jump", "duration": 2, "motion_prompt": "TikTok transition, woman holding top, covers the camera lens with it, uncovers it and she is wearing it, smiling"},
+            {"name": "Fabric Stretch", "duration": 2, "motion_prompt": "Close up selfie, woman pulling the fabric of the top to show how stretchy and soft it is, messy bedroom"},
+            {"name": "Candid Laugh", "duration": 2, "motion_prompt": "Close up selfie, woman laughing candidly while talking about her top, genuine relatable expression, ring light in eyes"},
+            {"name": "Window Light", "duration": 3, "motion_prompt": "Woman standing by her bedroom window, natural light hitting the top, turning slightly to show the color in the sun"},
+            {"name": "Styling Ideas", "duration": 3, "motion_prompt": "Woman holding up a jacket or accessory next to the top, asking the camera for styling opinions, interactive vlog style"},
+            {"name": "Quick Zoom", "duration": 2, "motion_prompt": "Chaotic UGC style, quick zoom on woman's face as she hypes up the top, funny relatable Gen-Z energy"},
+            {"name": "Outro Wave", "duration": 3, "motion_prompt": "UGC outro, woman blows a kiss to the camera and waves goodbye, wearing the top, authentic TikTok haul ending"}
+        ]
+    },    "curvy-chic": {
         "dress": [
             {"name": "Intro", "duration": 2, "motion_prompt": "curvy fashion model turns slowly in minimalist studio, showing hourglass fit of dress, warm golden lighting, camera focus breathing, soft shadows"},
             {"name": "Walk", "duration": 3, "motion_prompt": "curvy model walks confidently towards camera, dress drape emphasizes curves with realistic cloth folds, slow cinematic camera push-in, micro-drift"},
@@ -322,9 +410,18 @@ SCENE_TEMPLATES = {
 }
 
 def get_storyboard_scenes(style_direction: str, product_category: str) -> list:
+    import random
     style_dict = SCENE_TEMPLATES.get(style_direction, SCENE_TEMPLATES["casual"])
     # Fallback to "tops" if category not found in the style
     category_scenes = style_dict.get(product_category, style_dict.get("tops"))
+    
+    # If the pool has more than 3 scenes, randomly select 3 to ensure variety
+    if len(category_scenes) > 3:
+        # We ensure the hook (index 0) is often included, but randomize the rest.
+        # For true randomness, we can just sample 3.
+        sampled_scenes = random.sample(category_scenes, 3)
+        return sampled_scenes
+        
     return category_scenes
 
 def download_file(url: str, output_path: str) -> bool:
@@ -560,6 +657,18 @@ def assemble_ugc_video(
         # Generate Voiceover
         voiceover_file = f"output_assets/temp_{product_id}_{model_name}_voiceover.mp3"
         voiceover_ok = generate_voiceover(script, model_name, voiceover_file)
+        
+        # Apply Lip-Sync (Sync.so) if API key exists
+        # NOTE: Sync.so requires public URLs, so in production we would upload
+        # temp_silent_file and voiceover_file to S3/GCS first, pass the URLs,
+        # and then download the synced video back to temp_silent_file.
+        if os.getenv("SYNCSO_API_KEY") and voiceover_ok:
+            print("  → [TODO] Upload assets to S3 and pass to Sync.so for lip-sync")
+            # public_vid = upload_to_s3(temp_silent_file)
+            # public_aud = upload_to_s3(voiceover_file)
+            # synced_url = lipsync_syncso(public_vid, public_aud)
+            # download_file(synced_url, temp_silent_file)
+            pass
         
         # Mix voiceover + BGM
         has_mixed_audio = False
@@ -1046,7 +1155,13 @@ def run_ugc_pipeline(
     print(f"  Detected Category: {category.upper()}")
  
     final_outputs = []
- 
+
+    # If no model filter is specified, randomly pick ONE model to save API costs
+    if not model_id_filter:
+        import random
+        model_id_filter = random.choice(list(AI_MODELS.keys()))
+        print(f"  [Optimizer] No specific model requested. Randomly selected: {AI_MODELS[model_id_filter]['name']}")
+
     for model_id, model_data in AI_MODELS.items():
         if model_id_filter and model_id != model_id_filter:
             continue
@@ -1253,7 +1368,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
             ],
             "script": f"Obsessed with this {product_name}. The fit is absolutely flawless.",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
-            "backend": "mock", "status": "mock",
+            "backend": "test_mode", "status": "mock",
         },
         {
             "model_id": "model_2", "model_name": "Luna", "style": "streetwear",
@@ -1265,7 +1380,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
             ],
             "script": f"Streetwear essential unlocked 🔥 This {product_name} is everything.",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
-            "backend": "mock", "status": "mock",
+            "backend": "test_mode", "status": "mock",
         },
         {
             "model_id": "model_3", "model_name": "Nova", "style": "casual",
@@ -1277,7 +1392,7 @@ def _mock_outputs(product_id: str, product_name: str, model_id_filter: str = Non
             ],
             "script": f"Hey! I just found the cutest {product_name} ever. Link in bio! 💕",
             "final_video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
-            "backend": "mock", "status": "mock",
+            "backend": "test_mode", "status": "mock",
         },
     ]
     if model_id_filter:
