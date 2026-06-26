@@ -6,7 +6,7 @@ spring:
         - classpath:/resources/
         - classpath:/static/
         - classpath:/public/
-        - file:${MESHADA_UGC_STATIC_LOCATION:/Users/gsabbih/IdeaProjects/meshada-fashion-platform/ugc-engine/python_scripts/}
+        - file:${MESHADA_UGC_STATIC_LOCATION:/app/ugc-engine/python_scripts/}
   security:
     oauth2:
       client:
