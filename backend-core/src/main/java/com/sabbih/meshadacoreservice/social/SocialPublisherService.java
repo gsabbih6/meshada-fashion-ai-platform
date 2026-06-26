@@ -114,7 +114,7 @@ public class SocialPublisherService {
         try {
             pinterestSuccess = publishToPinterest(absoluteVideoUrl, video.getItemName(), caption, video.getAffiliateLink(), absoluteVtonImageUrl);
         } catch (Exception e) {
-            log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage(), e);
+            log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
         }
  
         // Save publication state if at least one main platform succeeded
