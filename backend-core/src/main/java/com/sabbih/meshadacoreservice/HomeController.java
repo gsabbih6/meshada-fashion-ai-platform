@@ -48,4 +48,14 @@ public class HomeController {
                 "commentCount", commentRepository.count()
         ));
     }
+
+    @GetMapping("/debug-comments")
+    public ResponseEntity<java.util.List<com.sabbih.meshadacoreservice.social.SocialComment>> debugComments() {
+        return ResponseEntity.ok(commentRepository.findAll());
+    }
+
+    @GetMapping("/debug-videos")
+    public ResponseEntity<java.util.List<com.sabbih.meshadacoreservice.ugc.UGCVideo>> debugVideos() {
+        return ResponseEntity.ok(videoRepository.findAll());
+    }
 }
