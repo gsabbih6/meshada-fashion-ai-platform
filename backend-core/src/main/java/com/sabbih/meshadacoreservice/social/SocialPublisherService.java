@@ -131,6 +131,13 @@ public class SocialPublisherService {
             log.error("[Social Publisher] Failed to publish to Pinterest: {}", e.getMessage());
         }
  
+        // 5. Post to Facebook Page
+        try {
+            publishToFacebookPage(absoluteVideoUrl, instagramCaption);
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to publish to Facebook Page: {}", e.getMessage());
+        }
+ 
         // Save publication state if at least one main platform succeeded
         if (instagramPostId != null || pinterestSuccess) {
             video.setPublished(true);
@@ -482,6 +489,13 @@ public class SocialPublisherService {
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to post to Pinterest: {}", e.getMessage());
         }
+
+        // 4. Post to Facebook Page
+        try {
+            publishImageToFacebookPage(mainCoverUrl, instagramCaption);
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to post image to Facebook Page: {}", e.getMessage());
+        }
     }
 
     private String publishToInstagramCarousel(java.util.List<String> imageUrls, String caption) {
@@ -699,6 +713,94 @@ public class SocialPublisherService {
         } catch (Exception e) {
             log.error("[Instagram Client] Failed to post comment: {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    private void publishToFacebookPage(String videoUrl, String caption) {
+        String pageToken = null;
+        String pageId = null;
+
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("facebook");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            pageToken = creds.getAccessToken();
+            pageId = creds.getBusinessAccountId();
+        }
+
+        if (pageToken == null || pageToken.isEmpty() || pageId == null || pageId.isEmpty()) {
+            log.warn("[Facebook Publisher] Credentials not configured in database for 'facebook'. Skipping Facebook publishing.");
+            return;
+        }
+
+        log.info("[Facebook Publisher] Publishing video to Facebook Page ID: {}", pageId);
+        String url = "https://graph.facebook.com/v19.0/" + pageId + "/videos";
+
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("file_url", videoUrl);
+        requestBody.put("description", caption);
+        requestBody.put("access_token", pageToken);
+
+        try {
+            Map response = webClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Facebook Publisher] Video published successfully to Facebook Page! Video ID: {}", response.get("id"));
+            } else {
+                log.error("[Facebook Publisher] Failed to publish video to Facebook Page: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("[Facebook Publisher] Exception publishing to Facebook Page: {}", e.getMessage(), e);
+        }
+    }
+
+    private void publishImageToFacebookPage(String imageUrl, String caption) {
+        String pageToken = null;
+        String pageId = null;
+
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("facebook");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            pageToken = creds.getAccessToken();
+            pageId = creds.getBusinessAccountId();
+        }
+
+        if (pageToken == null || pageToken.isEmpty() || pageId == null || pageId.isEmpty()) {
+            log.warn("[Facebook Publisher] Credentials not configured in database for 'facebook'. Skipping Facebook image publishing.");
+            return;
+        }
+
+        log.info("[Facebook Publisher] Publishing image to Facebook Page ID: {}", pageId);
+        String url = "https://graph.facebook.com/v19.0/" + pageId + "/photos";
+
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("url", imageUrl);
+        requestBody.put("message", caption);
+        requestBody.put("access_token", pageToken);
+
+        try {
+            Map response = webClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Facebook Publisher] Image published successfully to Facebook Page! Photo ID: {}", response.get("id"));
+            } else {
+                log.error("[Facebook Publisher] Failed to publish image to Facebook Page: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("[Facebook Publisher] Exception publishing image to Facebook Page: {}", e.getMessage(), e);
         }
     }
 }
