@@ -229,6 +229,33 @@ def wrap_text(text, font, max_width):
         lines.append(' '.join(current_line))
     return lines
 
+def load_custom_font(font_size):
+    # Try local macOS system paths first
+    for path in ["/System/Library/Fonts/Supplemental/Impact.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"]:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, font_size)
+            
+    # Try standard Linux paths
+    for path in ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"]:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, font_size)
+            
+    # Download Roboto-Bold if not present
+    local_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Roboto-Bold.ttf")
+    if not os.path.exists(local_font):
+        try:
+            print("[Font] Downloading Roboto-Bold.ttf from Google Fonts...")
+            url = "https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Bold.ttf"
+            urllib.request.urlretrieve(url, local_font)
+            print("[Font] Download complete.")
+        except Exception as e:
+            print(f"[Font] Warning: Failed to download font: {e}")
+            
+    if os.path.exists(local_font):
+        return ImageFont.truetype(local_font, font_size)
+        
+    return ImageFont.load_default()
+
 def composite_slide1_hook(image_path, headline_text, output_path):
     print(f"[Pillow] Compositing Slide 1: Hook from: {image_path}")
     try:
@@ -249,42 +276,31 @@ def composite_slide1_hook(image_path, headline_text, output_path):
         logo_box = [800, 50, 1030, 110]
         draw.rounded_rectangle(logo_box, radius=5, fill=(255, 255, 255, 120))
         
-        logo_font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-        logo_font = ImageFont.truetype(logo_font_path, 20) if os.path.exists(logo_font_path) else ImageFont.load_default()
+        logo_font = load_custom_font(20)
         logo_text = "MESHADA"
         
-        if os.path.exists(logo_font_path):
+        try:
             l_bbox = logo_font.getbbox(logo_text)
             l_w, l_h = l_bbox[2] - l_bbox[0], l_bbox[3] - l_bbox[1]
             logo_x = logo_box[0] + (logo_box[2] - logo_box[0] - l_w) / 2
             logo_y = logo_box[1] + (logo_box[3] - logo_box[1] - l_h) / 2 - 2
             draw.text((logo_x, logo_y), logo_text, font=logo_font, fill=(0, 0, 0, 220))
-        else:
+        except Exception:
             draw.text((820, 70), logo_text, fill=(0, 0, 0, 220))
             
-        # Load heavy news headline font (Impact.ttf)
-        font_path = "/System/Library/Fonts/Supplemental/Impact.ttf"
-        if not os.path.exists(font_path):
-            font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-            if not os.path.exists(font_path):
-                font_path = None
-                
         font_size = 56
-        font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
+        font = load_custom_font(font_size)
         
         headline_upper = headline_text.upper()
         max_text_width = 920
-        lines = wrap_text(headline_upper, font, max_text_width) if font_path else [headline_upper]
+        lines = wrap_text(headline_upper, font, max_text_width)
         
         margin_left = 80
         start_y = target_h - 100 - (len(lines) * (font_size + 15))
         
         current_y = start_y
         for line in lines:
-            if font_path:
-                draw.text((margin_left, current_y), line, font=font, fill=(255, 255, 255, 255))
-            else:
-                draw.text((margin_left, current_y), line, fill=(255, 255, 255, 255))
+            draw.text((margin_left, current_y), line, font=font, fill=(255, 255, 255, 255))
             current_y += font_size + 15
             
         final_img = Image.alpha_composite(img, overlay).convert("RGB")

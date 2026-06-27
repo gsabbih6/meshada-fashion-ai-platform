@@ -492,9 +492,13 @@ public class SocialPublisherService {
 
         // 4. Post to Facebook Page
         try {
-            publishImageToFacebookPage(mainCoverUrl, instagramCaption);
+            if (absoluteUrls.size() > 1) {
+                publishCarouselToFacebookPage(absoluteUrls, instagramCaption);
+            } else {
+                publishImageToFacebookPage(mainCoverUrl, instagramCaption);
+            }
         } catch (Exception e) {
-            log.error("[Social Publisher] Failed to post image to Facebook Page: {}", e.getMessage());
+            log.error("[Social Publisher] Failed to post to Facebook Page: {}", e.getMessage());
         }
     }
 
@@ -859,6 +863,93 @@ public class SocialPublisherService {
             attempts++;
         }
         return finished;
+    }
+
+    private void publishCarouselToFacebookPage(java.util.List<String> imageUrls, String caption) {
+        String pageToken = null;
+        String pageId = null;
+
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("facebook");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            pageToken = creds.getAccessToken();
+            pageId = creds.getBusinessAccountId();
+        }
+
+        if (pageToken == null || pageToken.isEmpty() || pageId == null || pageId.isEmpty()) {
+            log.warn("[Facebook Publisher] Credentials not configured for 'facebook'. Skipping Facebook carousel publishing.");
+            return;
+        }
+
+        log.info("[Facebook Publisher] Publishing carousel of {} images to Facebook Page ID: {}", imageUrls.size(), pageId);
+        final String finalPageToken = pageToken;
+        
+        java.util.List<String> photoIds = new java.util.ArrayList<>();
+        for (String url : imageUrls) {
+            String uploadUrl = "https://graph.facebook.com/v19.0/" + pageId + "/photos";
+            Map<String, Object> photoBody = new java.util.HashMap<>();
+            photoBody.put("url", url);
+            photoBody.put("published", false);
+            photoBody.put("access_token", finalPageToken);
+
+            try {
+                Map response = webClient.post()
+                        .uri(uploadUrl)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(photoBody)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+
+                if (response != null && response.containsKey("id")) {
+                    photoIds.add(response.get("id").toString());
+                } else {
+                    log.error("[Facebook Publisher] Failed to upload photo container for URL {}: {}", url, response);
+                }
+            } catch (Exception e) {
+                log.error("[Facebook Publisher] Exception uploading photo for URL {}: {}", url, e.getMessage());
+            }
+        }
+
+        if (photoIds.isEmpty()) {
+            log.error("[Facebook Publisher] No photos were successfully uploaded. Facebook Carousel publishing skipped.");
+            return;
+        }
+
+        // Post to feed with attached media
+        String feedUrl = "https://graph.facebook.com/v19.0/" + pageId + "/feed";
+        
+        java.util.List<Map<String, String>> attachedMedia = new java.util.ArrayList<>();
+        for (String id : photoIds) {
+            Map<String, String> mediaObj = new java.util.HashMap<>();
+            mediaObj.put("media_fbid", id);
+            attachedMedia.add(mediaObj);
+        }
+
+        Map<String, Object> feedBody = new java.util.HashMap<>();
+        feedBody.put("message", caption);
+        feedBody.put("attached_media", attachedMedia);
+        feedBody.put("access_token", finalPageToken);
+
+        try {
+            Map response = webClient.post()
+                    .uri(feedUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(feedBody)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Facebook Publisher] Carousel published successfully to Facebook Page! Post ID: {}", response.get("id"));
+            } else {
+                log.error("[Facebook Publisher] Failed to publish Carousel to Facebook Page: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("[Facebook Publisher] Exception publishing Carousel to Facebook Page: {}", e.getMessage(), e);
+        }
     }
 }
 
