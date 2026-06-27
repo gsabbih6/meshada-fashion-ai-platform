@@ -157,6 +157,7 @@ public class SocialAuthController {
 
                     for (Map<String, Object> page : pages) {
                         String pageName = (String) page.get("name");
+                        String pageId = (String) page.get("id");
                         String pageAccessToken = (String) page.get("access_token");
                         Map<String, Object> igAccount = (Map<String, Object>) page.get("instagram_business_account");
 
@@ -189,6 +190,18 @@ public class SocialAuthController {
                                 
                                 credentialsRepository.save(credentials);
                                 log.info("[OAuth] Automatically saved Instagram credentials for @{} to the database.", igUsername);
+
+                                // Automatically save Facebook Page credentials as well
+                                SocialCredentials fbCredentials = SocialCredentials.builder()
+                                        .platform("facebook")
+                                        .accessToken(pageAccessToken)
+                                        .businessAccountId(pageId)
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+                                
+                                credentialsRepository.save(fbCredentials);
+                                log.info("[OAuth] Automatically saved Facebook credentials for Page {} (ID: {}) to the database.", pageName, pageId);
+
                                 resultHtml.append(" - <span style='color: green;'>Saved & Activated!</span>");
                             } else {
                                 resultHtml.append(" - <span style='color: gray;'>Skipped (Non-target profile)</span>");
