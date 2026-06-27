@@ -2,3 +2,5 @@ higgsfield-client
 python-dotenv
 requests
 edge-tts
+Pillow
+
