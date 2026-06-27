@@ -23,7 +23,8 @@ public class PythonEnvInitializer {
                     "requests", 
                     "python-dotenv", 
                     "edge-tts", 
-                    "higgsfield-client"
+                    "higgsfield-client",
+                    "openai"
             );
             
             pb.redirectErrorStream(true);
