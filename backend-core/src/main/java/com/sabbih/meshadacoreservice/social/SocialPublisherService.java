@@ -492,10 +492,16 @@ public class SocialPublisherService {
 
         // 4. Post to Facebook Page
         try {
+            String fbPostId = null;
             if (absoluteUrls.size() > 1) {
-                publishCarouselToFacebookPage(absoluteUrls, instagramCaption);
+                fbPostId = publishCarouselToFacebookPage(absoluteUrls, instagramCaption);
             } else {
-                publishImageToFacebookPage(mainCoverUrl, instagramCaption);
+                fbPostId = publishImageToFacebookPage(mainCoverUrl, instagramCaption);
+            }
+            
+            if (fbPostId != null) {
+                String commentMsg = "Read more here: " + post.getMonetizedUrl();
+                commentOnFacebookPost(fbPostId, commentMsg);
             }
         } catch (Exception e) {
             log.error("[Social Publisher] Failed to post to Facebook Page: {}", e.getMessage());
@@ -776,7 +782,7 @@ public class SocialPublisherService {
         }
     }
 
-    private void publishImageToFacebookPage(String imageUrl, String caption) {
+    private String publishImageToFacebookPage(String imageUrl, String caption) {
         String pageToken = null;
         String pageId = null;
 
@@ -789,7 +795,7 @@ public class SocialPublisherService {
 
         if (pageToken == null || pageToken.isEmpty() || pageId == null || pageId.isEmpty()) {
             log.warn("[Facebook Publisher] Credentials not configured in database for 'facebook'. Skipping Facebook image publishing.");
-            return;
+            return null;
         }
 
         log.info("[Facebook Publisher] Publishing image to Facebook Page ID: {}", pageId);
@@ -811,13 +817,16 @@ public class SocialPublisherService {
                     .block();
 
             if (response != null && response.containsKey("id")) {
-                log.info("[Facebook Publisher] Image published successfully to Facebook Page! Photo ID: {}", response.get("id"));
+                String postId = response.get("id").toString();
+                log.info("[Facebook Publisher] Image published successfully to Facebook Page! Photo ID: {}", postId);
+                return postId;
             } else {
                 log.error("[Facebook Publisher] Failed to publish image to Facebook Page: {}", response);
             }
         } catch (Exception e) {
             log.error("[Facebook Publisher] Exception publishing image to Facebook Page: {}", e.getMessage(), e);
         }
+        return null;
     }
 
     private boolean waitForMediaContainerProcessing(String creationId, String finalPageToken) {
@@ -865,7 +874,7 @@ public class SocialPublisherService {
         return finished;
     }
 
-    private void publishCarouselToFacebookPage(java.util.List<String> imageUrls, String caption) {
+    private String publishCarouselToFacebookPage(java.util.List<String> imageUrls, String caption) {
         String pageToken = null;
         String pageId = null;
 
@@ -878,7 +887,7 @@ public class SocialPublisherService {
 
         if (pageToken == null || pageToken.isEmpty() || pageId == null || pageId.isEmpty()) {
             log.warn("[Facebook Publisher] Credentials not configured for 'facebook'. Skipping Facebook carousel publishing.");
-            return;
+            return null;
         }
 
         log.info("[Facebook Publisher] Publishing carousel of {} images to Facebook Page ID: {}", imageUrls.size(), pageId);
@@ -914,7 +923,7 @@ public class SocialPublisherService {
 
         if (photoIds.isEmpty()) {
             log.error("[Facebook Publisher] No photos were successfully uploaded. Facebook Carousel publishing skipped.");
-            return;
+            return null;
         }
 
         // Post to feed with attached media
@@ -943,12 +952,51 @@ public class SocialPublisherService {
                     .block();
 
             if (response != null && response.containsKey("id")) {
-                log.info("[Facebook Publisher] Carousel published successfully to Facebook Page! Post ID: {}", response.get("id"));
+                String postId = response.get("id").toString();
+                log.info("[Facebook Publisher] Carousel published successfully to Facebook Page! Post ID: {}", postId);
+                return postId;
             } else {
                 log.error("[Facebook Publisher] Failed to publish Carousel to Facebook Page: {}", response);
             }
         } catch (Exception e) {
             log.error("[Facebook Publisher] Exception publishing Carousel to Facebook Page: {}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public boolean commentOnFacebookPost(String postId, String message) {
+        String pageToken = null;
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("facebook");
+        if (credsOpt.isPresent() && credsOpt.get().getAccessToken() != null && !credsOpt.get().getAccessToken().isEmpty()) {
+            pageToken = credsOpt.get().getAccessToken();
+        }
+
+        if (pageToken == null || pageToken.isEmpty()) {
+            log.warn("[Facebook Client] Page Access Token not configured for 'facebook'. Comment logged: {}", message);
+            return false;
+        }
+
+        try {
+            log.info("[Facebook Client] Posting comment to Facebook Post ID: {}", postId);
+            String url = "https://graph.facebook.com/v19.0/" + postId + "/comments?message={message}&access_token={token}";
+            final String finalPageToken = pageToken;
+
+            Map response = webClient.post()
+                    .uri(url, message, finalPageToken)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Facebook Client] Comment posted successfully. Comment ID: {}", response.get("id"));
+                return true;
+            }
+            log.warn("[Facebook Client] Received unexpected comment response: {}", response);
+            return false;
+        } catch (Exception e) {
+            log.error("[Facebook Client] Failed to post comment: {}", e.getMessage(), e);
+            return false;
         }
     }
 }
