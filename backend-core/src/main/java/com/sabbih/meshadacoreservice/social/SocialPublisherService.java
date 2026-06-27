@@ -1,5 +1,6 @@
 package com.sabbih.meshadacoreservice.social;
 
+import com.sabbih.meshadacoreservice.ugc.FashionNewsPost;
 import com.sabbih.meshadacoreservice.ugc.UGCVideo;
 import com.sabbih.meshadacoreservice.ugc.UGCVideoRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -421,4 +422,284 @@ public class SocialPublisherService {
             return false;
         }
     }
+
+    /**
+     * Publish a News Post infographic to social media channels,
+     * including posting a follow-up comment with the monetized link.
+     */
+    public void publishNewsPostBridge(FashionNewsPost post) {
+        String instagramCaption = String.format("%s 💅 Read the full details via the link below!", post.getSocialCaption());
+        String twitterCaption = String.format("%s\n\nRead more: %s", post.getTitle(), post.getMonetizedUrl());
+        String pinterestDescription = String.format("%s. Read full details: %s", post.getSocialCaption(), post.getMonetizedUrl());
+
+        log.info("[Social Publisher] Starting news post publishing for ID: {}", post.getId());
+
+        String[] urls = post.getImageUrls() != null ? post.getImageUrls().split(",") : new String[0];
+        java.util.List<String> absoluteUrls = new java.util.ArrayList<>();
+        for (String url : urls) {
+            absoluteUrls.add(resolveAbsoluteUrl(url));
+        }
+
+        if (absoluteUrls.isEmpty()) {
+            log.warn("[Social Publisher] No image URLs found for News Post: {}", post.getId());
+            return;
+        }
+
+        String mainCoverUrl = absoluteUrls.get(0);
+
+        // 1. Post to Instagram Carousel Feed
+        String instagramPostId = null;
+        try {
+            if (absoluteUrls.size() > 1) {
+                instagramPostId = publishToInstagramCarousel(absoluteUrls, instagramCaption);
+            } else {
+                instagramPostId = publishToInstagramImage(mainCoverUrl, instagramCaption);
+            }
+            
+            if (instagramPostId != null) {
+                post.setInstagramPostId(instagramPostId);
+                // Post follow-up comment with the monetized news URL
+                String commentMsg = "Read more here: " + post.getMonetizedUrl();
+                commentOnInstagramMedia(instagramPostId, commentMsg);
+            }
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to publish news image to Instagram: {}", e.getMessage());
+        }
+
+        // 2. Post to Twitter/X
+        try {
+            publishToTwitter(null, twitterCaption); 
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to post Tweet: {}", e.getMessage());
+        }
+
+        // 3. Post to Pinterest
+        try {
+            boolean pinSuccess = publishToPinterest(mainCoverUrl, post.getTitle(), pinterestDescription, post.getMonetizedUrl(), mainCoverUrl);
+            if (pinSuccess) {
+                log.info("[Social Publisher] Successfully posted to Pinterest.");
+            }
+        } catch (Exception e) {
+            log.error("[Social Publisher] Failed to post to Pinterest: {}", e.getMessage());
+        }
+    }
+
+    private String publishToInstagramCarousel(java.util.List<String> imageUrls, String caption) {
+        String pageToken = instagramPageAccessToken;
+        String bizAccountId = instagramBusinessAccountId;
+
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            if (creds.getAccessToken() != null && !creds.getAccessToken().isEmpty()) {
+                pageToken = creds.getAccessToken();
+            }
+            if (creds.getBusinessAccountId() != null && !creds.getBusinessAccountId().isEmpty()) {
+                bizAccountId = creds.getBusinessAccountId();
+            }
+        }
+
+        if (pageToken == null || pageToken.isEmpty() ||
+                bizAccountId == null || bizAccountId.isEmpty()) {
+            log.warn("[Instagram Publisher] Credentials not configured. Carousel publishing skipped.");
+            return null;
+        }
+
+        log.info("[Instagram Publisher] Creating carousel item containers for biz account: {}", bizAccountId);
+        String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
+        final String finalPageToken = pageToken;
+        
+        java.util.List<String> itemIds = new java.util.ArrayList<>();
+        for (String url : imageUrls) {
+            Map<String, Object> itemBody = new java.util.HashMap<>();
+            itemBody.put("image_url", url);
+            itemBody.put("is_carousel_item", true);
+            itemBody.put("access_token", finalPageToken);
+            
+            try {
+                Map itemResponse = webClient.post()
+                        .uri(mediaUrl)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(itemBody)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+                        
+                if (itemResponse != null && itemResponse.containsKey("id")) {
+                    itemIds.add(itemResponse.get("id").toString());
+                } else {
+                    log.error("[Instagram Publisher] Failed to create item container for URL {}: {}", url, itemResponse);
+                }
+            } catch (Exception e) {
+                log.error("[Instagram Publisher] Exception creating item container: {}", e.getMessage());
+            }
+        }
+
+        if (itemIds.size() < 2) {
+            log.error("[Instagram Publisher] Not enough valid carousel item containers (needed at least 2, got {}).", itemIds.size());
+            return null;
+        }
+
+        log.info("[Instagram Publisher] Creating Carousel container with {} items...", itemIds.size());
+        Map<String, Object> carouselBody = new java.util.HashMap<>();
+        carouselBody.put("media_type", "CAROUSEL");
+        carouselBody.put("children", itemIds);
+        carouselBody.put("caption", caption);
+        carouselBody.put("access_token", finalPageToken);
+
+        Map response = webClient.post()
+                .uri(mediaUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(carouselBody)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (response == null || !response.containsKey("id")) {
+            log.error("[Instagram Publisher] Failed to create Carousel container. Response: {}", response);
+            return null;
+        }
+
+        String creationId = response.get("id").toString();
+        log.info("[Instagram Publisher] Carousel container created. ID: {}. Publishing...", creationId);
+
+        String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
+        Map<String, Object> publishBody = new java.util.HashMap<>();
+        publishBody.put("creation_id", creationId);
+        publishBody.put("access_token", finalPageToken);
+
+        Map publishResponse = webClient.post()
+                .uri(publishUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(publishBody)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (publishResponse != null && publishResponse.containsKey("id")) {
+            String postId = publishResponse.get("id").toString();
+            log.info("[Instagram Publisher] Carousel published successfully! Post ID: {}", postId);
+            return postId;
+        } else {
+            log.error("[Instagram Publisher] Failed to publish Carousel: {}", publishResponse);
+            return null;
+        }
+    }
+
+
+    private String publishToInstagramImage(String imageUrl, String caption) {
+        String pageToken = instagramPageAccessToken;
+        String bizAccountId = instagramBusinessAccountId;
+
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent()) {
+            SocialCredentials creds = credsOpt.get();
+            if (creds.getAccessToken() != null && !creds.getAccessToken().isEmpty()) {
+                pageToken = creds.getAccessToken();
+            }
+            if (creds.getBusinessAccountId() != null && !creds.getBusinessAccountId().isEmpty()) {
+                bizAccountId = creds.getBusinessAccountId();
+            }
+        }
+
+        if (pageToken == null || pageToken.isEmpty() ||
+                bizAccountId == null || bizAccountId.isEmpty()) {
+            log.warn("[Instagram Publisher] Credentials not configured. Image publishing skipped.");
+            return null;
+        }
+
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            log.warn("[Instagram Publisher] Image URL is empty. Image publishing skipped.");
+            return null;
+        }
+
+        log.info("[Instagram Publisher] Creating Image media container with image URL: {}", imageUrl);
+        String mediaUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media";
+        final String finalPageToken = pageToken;
+
+        Map<String, Object> requestBody = new java.util.HashMap<>();
+        requestBody.put("image_url", imageUrl);
+        requestBody.put("caption", caption);
+        requestBody.put("access_token", finalPageToken);
+
+        Map response = webClient.post()
+                .uri(mediaUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (response == null || !response.containsKey("id")) {
+            log.error("[Instagram Publisher] Failed to create Image container. Response: {}", response);
+            return null;
+        }
+
+        String creationId = response.get("id").toString();
+        log.info("[Instagram Publisher] Image container created. ID: {}. Publishing...", creationId);
+
+        String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
+        Map<String, Object> publishBody = new java.util.HashMap<>();
+        publishBody.put("creation_id", creationId);
+        publishBody.put("access_token", finalPageToken);
+
+        Map publishResponse = webClient.post()
+                .uri(publishUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(publishBody)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (publishResponse != null && publishResponse.containsKey("id")) {
+            String postId = publishResponse.get("id").toString();
+            log.info("[Instagram Publisher] Image published successfully! Post ID: {}", postId);
+            return postId;
+        } else {
+            log.error("[Instagram Publisher] Failed to publish Image: {}", publishResponse);
+            return null;
+        }
+    }
+
+    public boolean commentOnInstagramMedia(String mediaId, String message) {
+        String pageToken = instagramPageAccessToken;
+        java.util.Optional<SocialCredentials> credsOpt = credentialsRepository.findById("instagram");
+        if (credsOpt.isPresent() && credsOpt.get().getAccessToken() != null && !credsOpt.get().getAccessToken().isEmpty()) {
+            pageToken = credsOpt.get().getAccessToken();
+        }
+
+        if (pageToken == null || pageToken.isEmpty()) {
+            log.warn("[Instagram Client] Page Access Token not configured. Comment logged: {}", message);
+            return false;
+        }
+
+        try {
+            log.info("[Instagram Client] Posting comment to media ID: {}", mediaId);
+            String url = "https://graph.facebook.com/v19.0/" + mediaId + "/comments?message={message}&access_token={token}";
+            final String finalPageToken = pageToken;
+
+            Map response = webClient.post()
+                    .uri(url, message, finalPageToken)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (response != null && response.containsKey("id")) {
+                log.info("[Instagram Client] Comment posted successfully. Comment ID: {}", response.get("id"));
+                return true;
+            }
+            log.warn("[Instagram Client] Received unexpected comment response: {}", response);
+            return false;
+        } catch (Exception e) {
+            log.error("[Instagram Client] Failed to post comment: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 }
+
