@@ -577,8 +577,14 @@ public class SocialPublisherService {
         }
 
         String creationId = response.get("id").toString();
-        log.info("[Instagram Publisher] Carousel container created. ID: {}. Publishing...", creationId);
+        log.info("[Instagram Publisher] Carousel container created. ID: {}. Polling processing status...", creationId);
 
+        if (!waitForMediaContainerProcessing(creationId, finalPageToken)) {
+            log.error("[Instagram Publisher] Carousel container processing did not complete successfully. Skipping publish.");
+            return null;
+        }
+
+        log.info("[Instagram Publisher] Carousel container ready. Publishing...");
         String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
         Map<String, Object> publishBody = new java.util.HashMap<>();
         publishBody.put("creation_id", creationId);
@@ -654,8 +660,14 @@ public class SocialPublisherService {
         }
 
         String creationId = response.get("id").toString();
-        log.info("[Instagram Publisher] Image container created. ID: {}. Publishing...", creationId);
+        log.info("[Instagram Publisher] Image container created. ID: {}. Polling processing status...", creationId);
 
+        if (!waitForMediaContainerProcessing(creationId, finalPageToken)) {
+            log.error("[Instagram Publisher] Image container processing did not complete successfully. Skipping publish.");
+            return null;
+        }
+
+        log.info("[Instagram Publisher] Image container ready. Publishing...");
         String publishUrl = "https://graph.facebook.com/v19.0/" + bizAccountId + "/media_publish";
         Map<String, Object> publishBody = new java.util.HashMap<>();
         publishBody.put("creation_id", creationId);
@@ -802,6 +814,51 @@ public class SocialPublisherService {
         } catch (Exception e) {
             log.error("[Facebook Publisher] Exception publishing image to Facebook Page: {}", e.getMessage(), e);
         }
+    }
+
+    private boolean waitForMediaContainerProcessing(String creationId, String finalPageToken) {
+        boolean finished = false;
+        int attempts = 0;
+        String statusCheckUrl = "https://graph.facebook.com/v19.0/" + creationId;
+
+        while (attempts < 15 && !finished) {
+            try {
+                Thread.sleep(5000); // Wait 5 seconds
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+
+            URI checkUri = UriComponentsBuilder.fromHttpUrl(statusCheckUrl)
+                    .queryParam("fields", "status_code")
+                    .queryParam("access_token", finalPageToken)
+                    .build()
+                    .toUri();
+
+            try {
+                Map statusResponse = webClient.get()
+                        .uri(checkUri)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+
+                if (statusResponse != null && statusResponse.containsKey("status_code")) {
+                    String statusCode = statusResponse.get("status_code").toString();
+                    log.info("[Instagram Publisher] Status check for container {} attempt {}/15: {}", creationId, attempts + 1, statusCode);
+                    if ("FINISHED".equalsIgnoreCase(statusCode)) {
+                        finished = true;
+                    } else if ("ERROR".equalsIgnoreCase(statusCode)) {
+                        log.error("[Instagram Publisher] Container processing finished with ERROR: {}", statusResponse);
+                        return false;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[Instagram Publisher] Error checking status of container {}: {}", creationId, e.getMessage());
+            }
+            attempts++;
+        }
+        return finished;
     }
 }
 
