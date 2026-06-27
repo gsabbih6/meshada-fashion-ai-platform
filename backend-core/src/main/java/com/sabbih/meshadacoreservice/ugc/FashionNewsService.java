@@ -46,16 +46,29 @@ public class FashionNewsService {
         try {
             log.info("[Fashion News Service] Starting infographic generation (dryRun={})...", dryRun);
             
+            String resolvedPath = newsScriptPath;
+            if (!new java.io.File(resolvedPath).exists()) {
+                java.io.File relDirect = new java.io.File("ugc-engine/python_scripts/fashion_news_infographic.py");
+                if (relDirect.exists()) {
+                    resolvedPath = relDirect.getAbsolutePath();
+                } else {
+                    java.io.File relParent = new java.io.File("../ugc-engine/python_scripts/fashion_news_infographic.py");
+                    if (relParent.exists()) {
+                        resolvedPath = relParent.getAbsolutePath();
+                    }
+                }
+            }
+            
             ProcessBuilder pb;
             if (dryRun) {
                 pb = new ProcessBuilder(
-                        "python3", newsScriptPath,
+                        "python3", resolvedPath,
                         "--dry-run",
                         "--skimlinks-id", skimlinksId
                 );
             } else {
                 pb = new ProcessBuilder(
-                        "python3", newsScriptPath,
+                        "python3", resolvedPath,
                         "--skimlinks-id", skimlinksId
                 );
             }

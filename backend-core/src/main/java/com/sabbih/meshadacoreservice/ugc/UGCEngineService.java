@@ -33,9 +33,21 @@ public class UGCEngineService {
     public boolean generateUGCForProduct(Long productId, String productName, String productDescription, String productImageUrl, String productType, String affiliateLink) {
         StringBuilder output = new StringBuilder();
         try {
+            String resolvedPath = scriptPath;
+            if (!new java.io.File(resolvedPath).exists()) {
+                java.io.File relDirect = new java.io.File("ugc-engine/python_scripts/orchestrator.py");
+                if (relDirect.exists()) {
+                    resolvedPath = relDirect.getAbsolutePath();
+                } else {
+                    java.io.File relParent = new java.io.File("../ugc-engine/python_scripts/orchestrator.py");
+                    if (relParent.exists()) {
+                        resolvedPath = relParent.getAbsolutePath();
+                    }
+                }
+            }
             
             ProcessBuilder pb = new ProcessBuilder(
-                    "python3", scriptPath,
+                    "python3", resolvedPath,
                     "--product_id", String.valueOf(productId),
                     "--product_name", productName,
                     "--product_description", productDescription,
