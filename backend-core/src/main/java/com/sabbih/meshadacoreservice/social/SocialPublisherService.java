@@ -466,7 +466,14 @@ public class SocialPublisherService {
             if (instagramPostId != null) {
                 post.setInstagramPostId(instagramPostId);
                 // Post follow-up comment with the monetized news URL
-                String commentMsg = "Read more here: " + post.getMonetizedUrl();
+                String url = post.getMonetizedUrl();
+                if (url == null || url.isEmpty()) {
+                    url = post.getSourceUrl();
+                }
+                if (url == null || url.isEmpty()) {
+                    url = "https://www.meshada.com";
+                }
+                String commentMsg = "Read more here: " + url;
                 commentOnInstagramMedia(instagramPostId, commentMsg);
             }
         } catch (Exception e) {
@@ -500,7 +507,14 @@ public class SocialPublisherService {
             }
             
             if (fbPostId != null) {
-                String commentMsg = "Read more here: " + post.getMonetizedUrl();
+                String url = post.getMonetizedUrl();
+                if (url == null || url.isEmpty()) {
+                    url = post.getSourceUrl();
+                }
+                if (url == null || url.isEmpty()) {
+                    url = "https://www.meshada.com";
+                }
+                String commentMsg = "Read more here: " + url;
                 commentOnFacebookPost(fbPostId, commentMsg);
             }
         } catch (Exception e) {
