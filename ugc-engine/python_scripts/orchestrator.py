@@ -1169,11 +1169,10 @@ def run_ugc_pipeline(
  
     final_outputs = []
 
-    # If no model filter is specified, randomly pick ONE model to save API costs
+    # If no model filter is specified, default to Nova (model_3) as the Pure UGC model
     if not model_id_filter:
-        import random
-        model_id_filter = random.choice(list(AI_MODELS.keys()))
-        print(f"  [Optimizer] No specific model requested. Randomly selected: {AI_MODELS[model_id_filter]['name']}")
+        model_id_filter = "model_3"
+        print(f"  [Optimizer] No specific model requested. Defaulting to Pure UGC model: {AI_MODELS[model_id_filter]['name']}")
 
     for model_id, model_data in AI_MODELS.items():
         if model_id_filter and model_id != model_id_filter:
