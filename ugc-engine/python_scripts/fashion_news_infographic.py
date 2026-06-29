@@ -99,10 +99,38 @@ def fetch_rss_stories():
     print(f"[RSS] Sourced {len(stories)} articles.")
     return stories
 
+def extract_image_id(url):
+    # Extract Vogue photo ID
+    vogue_match = re.search(r'assets\.vogue\.com/photos/([a-f0-9]+)', url)
+    if vogue_match:
+        return vogue_match.group(1)
+        
+    # Extract Fashionista / general URL base name
+    # e.g., https://fashionista.com/.image/NTg6MDAw/14.jpg?profile=rss -> NTg6MDAw/14.jpg
+    fashionista_match = re.search(r'\.image/([^/?]+/[^/?]+)', url)
+    if fashionista_match:
+        return fashionista_match.group(1)
+        
+    # Fallback: filename from URL
+    try:
+        base = url.split("?")[0].split("/")[-1]
+        if base:
+            return base
+    except:
+        pass
+    return url
+
 def scrape_article_images(url, rss_description=None, main_image=None):
     images = []
+    seen_ids = set()
     
-    # 1. Try scraping if it's Vogue (Vogue handles direct scraping cleanly)
+    # 1. Add main_image first
+    if main_image:
+        main_id = extract_image_id(main_image)
+        seen_ids.add(main_id)
+        images.append(main_image)
+    
+    # 2. Try scraping if it's Vogue (Vogue handles direct scraping cleanly)
     if "vogue.com" in url:
         try:
             print(f"[Scraper] Scraping Vogue page for article images: {url}")
@@ -118,10 +146,9 @@ def scrape_article_images(url, rss_description=None, main_image=None):
             
             # Find photo IDs
             photo_ids = re.findall(r'assets\.vogue\.com/photos/([a-f0-9]+)', html)
-            unique_ids = []
             for pid in photo_ids:
-                if pid not in unique_ids:
-                    unique_ids.append(pid)
+                if pid not in seen_ids:
+                    seen_ids.add(pid)
                     # Reconstruct a high-res crop URL
                     img_url = f"https://assets.vogue.com/photos/{pid}/master/w_1280,c_limit/image.jpg"
                     images.append(img_url)
@@ -129,25 +156,20 @@ def scrape_article_images(url, rss_description=None, main_image=None):
         except Exception as e:
             print(f"[Scraper] Error scraping Vogue: {e}")
 
-    # 2. Extract from RSS description if available (extremely useful for Fashionista to avoid 403 Forbidden)
-    if not images and rss_description:
+    # 3. Extract from RSS description if available (extremely useful for Fashionista to avoid 403 Forbidden)
+    if len(images) < 3 and rss_description:
         try:
             # Extract img src URLs
             img_urls = re.findall(r'src="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"', rss_description, re.IGNORECASE)
             for img in img_urls:
                 img_clean = img.replace("&amp;", "&")
-                if img_clean not in images:
+                img_id = extract_image_id(img_clean)
+                if img_id not in seen_ids:
+                    seen_ids.add(img_id)
                     images.append(img_clean)
-            print(f"[Scraper] Extracted {len(images)} images from RSS description.")
+            print(f"[Scraper] Extracted images from RSS description. Total count: {len(images)}")
         except Exception as e:
             print(f"[Scraper] Error parsing RSS description: {e}")
-
-    # 3. Insert main_image as first choice if present
-    if main_image:
-        # Normalize and remove from elsewhere in list to avoid duplicates
-        if main_image in images:
-            images.remove(main_image)
-        images.insert(0, main_image)
 
     # 4. Clean list
     final_images = []
@@ -373,11 +395,9 @@ def composite_slide1_hook(image_path, headline_text, output_path, zoom_level=1.0
         return False
 
 def composite_slide2_story(image_path, story_text, output_path, zoom_level=1.0):
-    print(f"[Pillow] Compositing Slide 2: Story Details")
     return composite_slide1_hook(image_path, story_text, output_path, zoom_level=zoom_level)
 
 def composite_slide3_cta(image_path, cta_text, output_path, zoom_level=1.0):
-    print(f"[Pillow] Compositing Slide 3: CTA")
     return composite_slide1_hook(image_path, cta_text, output_path, zoom_level=zoom_level)
 
 def main():
@@ -411,10 +431,20 @@ def main():
     else:
         article_images = [FALLBACK_IMAGE_URL]
 
-    # Map images to slides
+    # Map images to slides with index spacing to avoid repeating similar initial slideshow images
     img1_url = article_images[0] if len(article_images) > 0 else FALLBACK_IMAGE_URL
-    img2_url = article_images[1] if len(article_images) > 1 else img1_url
-    img3_url = article_images[2] if len(article_images) > 2 else img1_url
+    
+    # Heuristically space out slide images across the article gallery
+    if len(article_images) >= 6:
+        # e.g., if we have 15 unique photos, map to index 0, index 5, and index 10 to ensure different outfits
+        img2_url = article_images[len(article_images) // 3]
+        img3_url = article_images[(2 * len(article_images)) // 3]
+    elif len(article_images) >= 3:
+        img2_url = article_images[1]
+        img3_url = article_images[2]
+    else:
+        img2_url = img1_url
+        img3_url = img1_url
 
     # Check if we are reusing the same cover image (so we can apply detail zooming)
     zoom_slide2 = 1.35 if img2_url == img1_url else 1.0
