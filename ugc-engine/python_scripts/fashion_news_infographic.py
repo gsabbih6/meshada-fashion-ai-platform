@@ -356,11 +356,11 @@ def composite_slide1_hook(image_path, headline_text, output_path, zoom_level=1.0
             alpha = int(230 * (y - gradient_start_y) / (target_h - gradient_start_y))
             draw.line([(0, y), (target_w, y)], fill=(0, 0, 0, alpha))
             
-        # Semi-transparent MESHADA FASHION logo box in top-right
-        logo_box = [800, 50, 1030, 110]
-        draw.rounded_rectangle(logo_box, radius=5, fill=(255, 255, 255, 120))
+        # Solid black/dark charcoal LADbible-style MESHADA logo box in top-right
+        logo_box = [780, 50, 1030, 110]
+        draw.rounded_rectangle(logo_box, radius=0, fill=(15, 23, 42, 255)) # Rectangular box, solid dark slate
         
-        logo_font = load_custom_font(20)
+        logo_font = load_custom_font(28) # Bolder font size for impact
         logo_text = "MESHADA"
         
         try:
@@ -368,9 +368,9 @@ def composite_slide1_hook(image_path, headline_text, output_path, zoom_level=1.0
             l_w, l_h = l_bbox[2] - l_bbox[0], l_bbox[3] - l_bbox[1]
             logo_x = logo_box[0] + (logo_box[2] - logo_box[0] - l_w) / 2
             logo_y = logo_box[1] + (logo_box[3] - logo_box[1] - l_h) / 2 - 2
-            draw.text((logo_x, logo_y), logo_text, font=logo_font, fill=(0, 0, 0, 220))
+            draw.text((logo_x, logo_y), logo_text, font=logo_font, fill=(255, 255, 255, 255)) # Bold white text
         except Exception:
-            draw.text((820, 70), logo_text, fill=(0, 0, 0, 220))
+            draw.text((820, 70), logo_text, fill=(255, 255, 255, 255))
             
         font_size = 56
         font = load_custom_font(font_size)
