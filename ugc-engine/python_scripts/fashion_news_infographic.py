@@ -209,6 +209,7 @@ def select_and_summarize_news(stories, dry_run=False):
         "1. selected_headline: A punchy 1-line uppercase headline (LADbible style, e.g. 'FANS ARE OBSESSED WITH DUA LIPA\\'S NEW BEACH STYLE').\n"
         "2. slide2_text: The main details of what happened (1-2 sentences, max 20 words).\n"
         "3. slide3_text: A call to action with a takeaway (e.g. 'Tap below to shop similar styles or read the full story.').\n"
+        "4. social_caption: An engaging social media caption that MUST include 3-5 highly relevant, viral fashion hashtags (e.g. #MeshadaFashion, #OOTD, #StyleInspo, #FashionNews, plus specific hashtags for the celebrity, brand, or event in the story).\n"
         "Return your response ONLY as a JSON object with keys: "
         "'selected_headline', 'slide2_text', 'slide3_text', 'social_caption', 'original_link', 'original_title', 'image_url', 'styling_prompt'."
     )
@@ -261,11 +262,20 @@ def select_and_summarize_news(stories, dry_run=False):
             elif " | " in headline:
                 headline = headline.split(" | ")[0]
                 
+            # Generate dynamic hashtags from headline words for the fallback caption
+            headline_clean = re.sub(r'[^\w\s]', '', headline)
+            words = [w for w in headline_clean.split() if w[0].isupper() and len(w) >= 3]
+            tags = [f"#{w}" for w in words]
+            # De-duplicate tags
+            tags = list(dict.fromkeys(tags))
+            hashtag_str = " ".join(tags[:3])
+            social_caption = f"Breaking: {headline} 💅 Swipe to read details & click below for full story! #MeshadaFashion #FashionNews {hashtag_str}".strip()
+
             return {
                 "selected_headline": headline.upper(),
                 "slide2_text": slide2,
                 "slide3_text": slide3,
-                "social_caption": f"Breaking: {headline} 💅 Swipe to read details & click below for full story!",
+                "social_caption": social_caption,
                 "original_link": first_story["link"],
                 "original_title": first_story["title"],
                 "image_url": first_story["image_url"] if first_story["image_url"] else FALLBACK_IMAGE_URL,
