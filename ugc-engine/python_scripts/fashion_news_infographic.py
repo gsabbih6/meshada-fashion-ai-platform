@@ -11,6 +11,7 @@ import time
 import json
 import argparse
 import random
+import re
 import requests
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -38,8 +39,6 @@ FASHION_FEEDS = [
 ]
 
 FALLBACK_IMAGE_URL = "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1080" # High-end fashion photo
-SECONDARY_IMAGE_URL = "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1080" # Alternate high-end fashion photo
-CTA_IMAGE_URL = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1080" # Alternate clothing rack photo
 
 def fetch_rss_stories():
     stories = []
@@ -91,7 +90,7 @@ def fetch_rss_stories():
                     stories.append({
                         "title": title_text,
                         "link": link_text,
-                        "description": desc_text[:300],
+                        "description": desc_text, # Keep full description for image scraping
                         "image_url": img_url
                     })
         except Exception as e:
@@ -99,6 +98,64 @@ def fetch_rss_stories():
             
     print(f"[RSS] Sourced {len(stories)} articles.")
     return stories
+
+def scrape_article_images(url, rss_description=None, main_image=None):
+    images = []
+    
+    # 1. Try scraping if it's Vogue (Vogue handles direct scraping cleanly)
+    if "vogue.com" in url:
+        try:
+            print(f"[Scraper] Scraping Vogue page for article images: {url}")
+            req = urllib.request.Request(
+                url, 
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+                }
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                html = response.read().decode('utf-8', errors='ignore')
+            
+            # Find photo IDs
+            photo_ids = re.findall(r'assets\.vogue\.com/photos/([a-f0-9]+)', html)
+            unique_ids = []
+            for pid in photo_ids:
+                if pid not in unique_ids:
+                    unique_ids.append(pid)
+                    # Reconstruct a high-res crop URL
+                    img_url = f"https://assets.vogue.com/photos/{pid}/master/w_1280,c_limit/image.jpg"
+                    images.append(img_url)
+            print(f"[Scraper] Scraped {len(images)} unique photos from Vogue article webpage.")
+        except Exception as e:
+            print(f"[Scraper] Error scraping Vogue: {e}")
+
+    # 2. Extract from RSS description if available (extremely useful for Fashionista to avoid 403 Forbidden)
+    if not images and rss_description:
+        try:
+            # Extract img src URLs
+            img_urls = re.findall(r'src="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"', rss_description, re.IGNORECASE)
+            for img in img_urls:
+                img_clean = img.replace("&amp;", "&")
+                if img_clean not in images:
+                    images.append(img_clean)
+            print(f"[Scraper] Extracted {len(images)} images from RSS description.")
+        except Exception as e:
+            print(f"[Scraper] Error parsing RSS description: {e}")
+
+    # 3. Insert main_image as first choice if present
+    if main_image:
+        # Normalize and remove from elsewhere in list to avoid duplicates
+        if main_image in images:
+            images.remove(main_image)
+        images.insert(0, main_image)
+
+    # 4. Clean list
+    final_images = []
+    for img in images:
+        if img.startswith("http") and img not in final_images:
+            final_images.append(img)
+
+    return final_images
 
 def select_and_summarize_news(stories, dry_run=False):
     if dry_run or not os.getenv("OPENAI_API_KEY") or not stories:
@@ -111,8 +168,7 @@ def select_and_summarize_news(stories, dry_run=False):
             "original_link": "https://www.vogue.com/article/celebrity-fashion-trends",
             "original_title": "Zendaya's Vintage Archival Runway Gown in Paris",
             "image_url": FALLBACK_IMAGE_URL,
-            "secondary_image_url": SECONDARY_IMAGE_URL,
-            "styling_prompt": "Zendaya walking on a runway in a rare vintage slip dress, high-end editorial studio fashion photoshoot, soft studio lighting"
+            "rss_description": None
         }
 
     from openai import OpenAI
@@ -121,7 +177,8 @@ def select_and_summarize_news(stories, dry_run=False):
     sample_stories = stories[:15]
     prompt_stories = []
     for idx, s in enumerate(sample_stories):
-        prompt_stories.append(f"[{idx}] TITLE: {s['title']}\nLINK: {s['link']}\nDESC: {s['description']}\nIMAGE: {s['image_url'] or 'None'}")
+        desc_clean = re.sub('<[^<]+?>', '', s['description']).strip()[:200]
+        prompt_stories.append(f"[{idx}] TITLE: {s['title']}\nLINK: {s['link']}\nDESC: {desc_clean}\nIMAGE: {s['image_url'] or 'None'}")
 
     system_prompt = (
         "You are an elite fashion editor for Meshada Fashion. Your goal is to review a list of recent fashion news stories "
@@ -151,6 +208,7 @@ def select_and_summarize_news(stories, dry_run=False):
             if s["link"] == selected_link or s["title"] in result.get("original_title", ""):
                 result["original_link"] = s["link"]
                 result["original_title"] = s["title"]
+                result["rss_description"] = s["description"]
                 if s["image_url"]:
                     result["image_url"] = s["image_url"]
                 matched = True
@@ -159,19 +217,15 @@ def select_and_summarize_news(stories, dry_run=False):
         if not result.get("image_url") or result["image_url"] == "None":
             result["image_url"] = FALLBACK_IMAGE_URL
 
-        # Add default secondary/CTA links
-        result["secondary_image_url"] = SECONDARY_IMAGE_URL
         print(f"[LLM] Selected Story: {result.get('original_title')}")
         return result
     except Exception as e:
         print(f"[LLM] Error selecting news story: {e}. Falling back to direct RSS story parsing.")
         if stories:
-            import re
             first_story = stories[0]
             desc_clean = re.sub('<[^<]+?>', '', first_story["description"]).strip()
             desc_words = desc_clean.split()
             
-            # Split description into slide 2 and 3
             slide2 = " ".join(desc_words[:20])
             slide3 = " ".join(desc_words[20:40])
             if len(desc_words) > 40:
@@ -193,8 +247,7 @@ def select_and_summarize_news(stories, dry_run=False):
                 "original_link": first_story["link"],
                 "original_title": first_story["title"],
                 "image_url": first_story["image_url"] if first_story["image_url"] else FALLBACK_IMAGE_URL,
-                "secondary_image_url": SECONDARY_IMAGE_URL,
-                "styling_prompt": "High-end editorial studio fashion photoshoot style, premium brand look"
+                "rss_description": first_story["description"]
             }
         else:
             return select_and_summarize_news(None, dry_run=True)
@@ -230,24 +283,20 @@ def wrap_text(text, font, max_width):
     return lines
 
 def load_custom_font(font_size):
-    # Try local macOS system paths first
     for path in ["/System/Library/Fonts/Supplemental/Impact.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"]:
         if os.path.exists(path):
             return ImageFont.truetype(path, font_size)
             
-    # Try standard Linux paths
     for path in ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"]:
         if os.path.exists(path):
             return ImageFont.truetype(path, font_size)
             
-    # Download Roboto-Bold if not present
     local_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Roboto-Bold.ttf")
     if not os.path.exists(local_font):
         try:
             print("[Font] Downloading Roboto-Bold.ttf from Google Fonts...")
             url = "https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Bold.ttf"
             urllib.request.urlretrieve(url, local_font)
-            print("[Font] Download complete.")
         except Exception as e:
             print(f"[Font] Warning: Failed to download font: {e}")
             
@@ -256,13 +305,26 @@ def load_custom_font(font_size):
         
     return ImageFont.load_default()
 
-def composite_slide1_hook(image_path, headline_text, output_path):
-    print(f"[Pillow] Compositing Slide 1: Hook from: {image_path}")
+def composite_slide1_hook(image_path, headline_text, output_path, zoom_level=1.0):
+    print(f"[Pillow] Compositing Slide from: {image_path} (zoom_level={zoom_level})")
     try:
         img = Image.open(image_path).convert("RGBA")
         target_w, target_h = 1080, 1350
+        
+        # Fit image to box
         img = ImageOps.fit(img, (target_w, target_h), Image.Resampling.LANCZOS)
         
+        # Apply Zoom level for detail focusing if requested (when reusing same image)
+        if zoom_level > 1.0:
+            w, h = img.size
+            new_w, new_h = int(w / zoom_level), int(h / zoom_level)
+            left = (w - new_w) // 2
+            top = (h - new_h) // 2
+            right = left + new_w
+            bottom = top + new_h
+            img = img.crop((left, top, right, bottom))
+            img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
         overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         
@@ -307,16 +369,16 @@ def composite_slide1_hook(image_path, headline_text, output_path):
         final_img.save(output_path, "JPEG", quality=95)
         return True
     except Exception as e:
-        print(f"[Pillow] Slide 1 Error: {e}")
+        print(f"[Pillow] Slide Error: {e}")
         return False
 
-def composite_slide2_story(image_path, story_text, output_path):
-    print(f"[Pillow] Compositing Slide 2: Story Details from: {image_path}")
-    return composite_slide1_hook(image_path, story_text, output_path)
+def composite_slide2_story(image_path, story_text, output_path, zoom_level=1.0):
+    print(f"[Pillow] Compositing Slide 2: Story Details")
+    return composite_slide1_hook(image_path, story_text, output_path, zoom_level=zoom_level)
 
-def composite_slide3_cta(image_path, cta_text, output_path):
-    print(f"[Pillow] Compositing Slide 3: CTA from: {image_path}")
-    return composite_slide1_hook(image_path, cta_text, output_path)
+def composite_slide3_cta(image_path, cta_text, output_path, zoom_level=1.0):
+    print(f"[Pillow] Compositing Slide 3: CTA")
+    return composite_slide1_hook(image_path, cta_text, output_path, zoom_level=zoom_level)
 
 def main():
     parser = argparse.ArgumentParser(description="Meshada Fashion News Carousel Generator")
@@ -338,20 +400,44 @@ def main():
         
     news_data = select_and_summarize_news(stories, dry_run=args.dry_run)
 
+    # Scrape all unique images from the article
+    article_images = []
+    if not args.dry_run:
+        article_images = scrape_article_images(
+            news_data["original_link"], 
+            rss_description=news_data.get("rss_description"), 
+            main_image=news_data.get("image_url")
+        )
+    else:
+        article_images = [FALLBACK_IMAGE_URL]
+
+    # Map images to slides
+    img1_url = article_images[0] if len(article_images) > 0 else FALLBACK_IMAGE_URL
+    img2_url = article_images[1] if len(article_images) > 1 else img1_url
+    img3_url = article_images[2] if len(article_images) > 2 else img1_url
+
+    # Check if we are reusing the same cover image (so we can apply detail zooming)
+    zoom_slide2 = 1.35 if img2_url == img1_url else 1.0
+    zoom_slide3 = 1.65 if img3_url == img1_url else 1.0
+
+    print(f"[Image Config] Slide 1: {img1_url}")
+    print(f"[Image Config] Slide 2: {img2_url} (zoom={zoom_slide2})")
+    print(f"[Image Config] Slide 3: {img3_url} (zoom={zoom_slide3})")
+
     # Download Slide 1 Image
-    local_image1 = download_temp_image(news_data["image_url"], "slide1")
+    local_image1 = download_temp_image(img1_url, "slide1")
     if not local_image1:
         local_image1 = download_temp_image(FALLBACK_IMAGE_URL, "slide1")
 
     # Download Slide 2 Image
-    local_image2 = download_temp_image(news_data["secondary_image_url"], "slide2")
+    local_image2 = download_temp_image(img2_url, "slide2") if img2_url != img1_url else local_image1
     if not local_image2:
-        local_image2 = download_temp_image(SECONDARY_IMAGE_URL, "slide2")
+        local_image2 = local_image1
 
     # Download Slide 3 Image
-    local_image3 = download_temp_image(CTA_IMAGE_URL, "slide3")
+    local_image3 = download_temp_image(img3_url, "slide3") if (img3_url != img1_url and img3_url != img2_url) else (local_image2 if img3_url == img2_url else local_image1)
     if not local_image3:
-        local_image3 = download_temp_image(CTA_IMAGE_URL, "slide3")
+        local_image3 = local_image1
 
     # Composite Carousel Slides
     timestamp = int(time.time())
@@ -365,16 +451,16 @@ def main():
     path_slide3 = os.path.join(output_dir, fn_slide3)
     
     success1 = composite_slide1_hook(local_image1, news_data["selected_headline"], path_slide1)
-    success2 = composite_slide2_story(local_image2, news_data["slide2_text"], path_slide2)
-    success3 = composite_slide3_cta(local_image3, news_data["slide3_text"], path_slide3)
+    success2 = composite_slide2_story(local_image2, news_data["slide2_text"], path_slide2, zoom_level=zoom_slide2)
+    success3 = composite_slide3_cta(local_image3, news_data["slide3_text"], path_slide3, zoom_level=zoom_slide3)
     
-    # Clean up temp files
-    for temp_img in [local_image1, local_image2, local_image3]:
-        if temp_img:
-            try:
-                os.remove(temp_img)
-            except:
-                pass
+    # Clean up temp files (only remove unique downloaded paths)
+    unique_temp_paths = list(filter(None, set([local_image1, local_image2, local_image3])))
+    for temp_img in unique_temp_paths:
+        try:
+            os.remove(temp_img)
+        except:
+            pass
 
     success = success1 and success2 and success3
 
